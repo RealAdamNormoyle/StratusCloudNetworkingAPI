@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworking\\StratusCloudNetworking\\StratusCloudNetworking.csproj": {}
+    "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworkingAPI\\StratusCloudNetworking\\StratusCloudNetworking.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworking\\StratusCloudNetworking\\StratusCloudNetworking.csproj": {
+    "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworkingAPI\\StratusCloudNetworking\\StratusCloudNetworking.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworking\\StratusCloudNetworking\\StratusCloudNetworking.csproj",
+        "projectUniqueName": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworkingAPI\\StratusCloudNetworking\\StratusCloudNetworking.csproj",
         "projectName": "StratusCloudNetworking",
-        "projectPath": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworking\\StratusCloudNetworking\\StratusCloudNetworking.csproj",
+        "projectPath": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworkingAPI\\StratusCloudNetworking\\StratusCloudNetworking.csproj",
         "packagesPath": "C:\\Users\\Adam\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworking\\StratusCloudNetworking\\obj\\",
+        "outputPath": "C:\\Users\\Adam\\source\\repos\\StratusCloudNetworkingAPI\\StratusCloudNetworking\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Microsoft\\Xamarin\\NuGet\\",
