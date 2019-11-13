@@ -166,6 +166,17 @@ namespace StratusCloudNetworking
                         connection.nickName = data.nickName;
                     }
 
+                    binaryFormatter.Serialize(stream, data);
+                    var buffer = new byte[1024];
+                    stream.Read(buffer, 0, ((int)stream.Length));
+
+                    NetworkMessage msg = new NetworkMessage()
+                    {
+                        eventCode = message.eventCode,
+                        sendOption = message.sendOption,
+                        data = buffer
+                    };
+
                     break;
                 case NetworkEventType.CreateRoomRequest:
 
@@ -239,10 +250,10 @@ namespace StratusCloudNetworking
     [System.Serializable]
     public class ClientInfo{
 
+        public int clientID;
         public string appUID;
         public int appVersion;
         public string nickName;
-
     }
 
     public enum NetworkEventType
@@ -273,7 +284,7 @@ namespace StratusCloudNetworking
 
     public struct ClientConnection
     {
-        public string ID;
+        public int ID;
         public string currentRoom;
         public Socket socket;
         public int appVersion;
