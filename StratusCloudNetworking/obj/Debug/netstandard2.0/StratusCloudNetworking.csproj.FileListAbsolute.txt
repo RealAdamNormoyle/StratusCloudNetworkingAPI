@@ -1,0 +1,8 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\bin\Debug\netstandard2.0\StratusCloudNetworking.deps.json
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\bin\Debug\netstandard2.0\StratusCloudNetworking.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\bin\Debug\netstandard2.0\StratusCloudNetworking.pdb
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.0\StratusCloudNetworking.csproj.CoreCompileInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.0\StratusCloudNetworking.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.0\StratusCloudNetworking.AssemblyInfo.cs
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.0\StratusCloudNetworking.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.0\StratusCloudNetworking.pdb

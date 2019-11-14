@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <ApplicationIcon />
+    <StartupObject>Program</StartupObject>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="StratusCloudNetworking">
+      <HintPath>..\StratusCloudNetworking\bin\Debug\netstandard2.0\StratusCloudNetworking.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

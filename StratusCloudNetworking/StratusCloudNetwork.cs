@@ -10,9 +10,7 @@ namespace StratusCloudNetworking
 {
     public static class StratusCloudNetwork
     {
-        public const string masterServer = "masterserver.net";
-
-
+        public const string masterServer = "192.168.1.16";
     }
 
     public class Client
@@ -43,21 +41,31 @@ namespace StratusCloudNetworking
             try
             {
                 socket.Connect(new IPEndPoint(IPAddress.Parse(StratusCloudNetwork.masterServer), connectionSettings.port));
+                socket.BeginReceive(incomingBuffer,0,1024, SocketFlags.None, ReceiveData, socket);
             }
             catch (Exception e)
             {
                 OnConnectionError(e);
-                Console.Out.WriteLine(e);
             }
         }
 
-
         private void ReceiveData(IAsyncResult ar)
         {
+            OnConnectedToMaster();
             Socket client = (Socket)ar.AsyncState;
-            int count = socket.EndReceive(ar);
+            int count = client.EndReceive(ar);
+            if (count < 1)
+                return;
+
             byte[] dataBuffer = new byte[count];
             Array.Copy(incomingBuffer, dataBuffer, count);
+
+
+            Console.Out.WriteLine(dataBuffer.ToString());
+            socket.BeginReceive(incomingBuffer, 0, 1024, SocketFlags.None, ReceiveData, socket);
+
+            return;
+
             bufferStream = new MemoryStream(dataBuffer);
             //Parse Network Message here
             NetworkMessage message = (NetworkMessage)binaryFormatter.Deserialize(bufferStream);
@@ -119,6 +127,8 @@ namespace StratusCloudNetworking
         byte[] incomingBuffer = new byte[1024];
         byte[] sendBuffer = new byte[1024];
 
+        public Action<string> logCallback;
+
         BinaryFormatter binaryFormatter = new BinaryFormatter();
         Stream bufferStream;
 
@@ -131,13 +141,34 @@ namespace StratusCloudNetworking
             socket.Bind(new IPEndPoint(IPAddress.Any, settings.port));
             socket.Listen(1000);
             socket.BeginAccept(new AsyncCallback(ConnectionAccept), null);
+            logCallback("Server Started");
         }
 
         private void ConnectionAccept(IAsyncResult ar)
         {
             Socket client = socket.EndAccept(ar);
-            clientConnections.Add(new ClientConnection() { ID = clientConnections.Count.ToString(), socket = client });
-            client.BeginReceive(incomingBuffer, 0, incomingBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveData), client);
+            var conn = new ClientConnection() { ID = clientConnections.Count, socket = client };
+            logCallback("Client Connecting");
+            clientConnections.Add(conn);
+
+            NetworkMessage msg = new NetworkMessage()
+            {
+                eventCode =
+                (byte)StratusCloudNetworking.NetworkEventType.ServerConnectionData,
+                sendOption = (byte)SendOptions.All,
+                data = new byte[0]
+            };
+
+            bufferStream = new MemoryStream();
+            binaryFormatter.Serialize(bufferStream, msg);
+            bufferStream.Read(sendBuffer, 0, (int)(bufferStream.Length));
+            client.Send(sendBuffer);
+            logCallback("sent bytes : " + bufferStream.Length);
+            bufferStream.Close();
+
+            logCallback("Client Connecting");
+
+            //SendNetworkMessage(msg, conn);
         }
 
         private void ReceiveData(IAsyncResult ar)
@@ -177,6 +208,8 @@ namespace StratusCloudNetworking
                         data = buffer
                     };
 
+                    logCallback("Client Connected");
+
                     break;
                 case NetworkEventType.CreateRoomRequest:
 
@@ -196,16 +229,20 @@ namespace StratusCloudNetworking
         {
             try
             {
+                logCallback("Sending Message");
                 binaryFormatter.Serialize(bufferStream, message);
                 bufferStream.Read(sendBuffer, 0, (int)(bufferStream.Length));
-                socket.Send(sendBuffer);
+                sendingClient.socket.Send(sendBuffer);
                 bufferStream.Close();
                  
             }
             catch (Exception e)
             {
-
+                logCallback(e.Message);
             }
+
+            sendingClient.socket.BeginReceive(incomingBuffer, 0, incomingBuffer.Length, SocketFlags.None, new AsyncCallback(ReceiveData), sendingClient.socket);
+
         }
 
         ClientConnection GetConnectionFromSocket(Socket socket)
