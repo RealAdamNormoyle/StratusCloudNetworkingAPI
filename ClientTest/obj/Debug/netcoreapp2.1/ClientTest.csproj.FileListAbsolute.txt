@@ -1,13 +1,4 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.csprojAssemblyReference.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.csproj.CoreCompileInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.AssemblyInfoInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.AssemblyInfo.cs
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\ClientTest.deps.json
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\ClientTest.runtimeconfig.json
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\ClientTest.runtimeconfig.dev.json
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\ClientTest.dll
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\ClientTest.pdb
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\StratusCloudNetworking.dll
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\bin\Debug\netcoreapp2.1\StratusCloudNetworking.pdb
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.csproj.CopyComplete
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.dll
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\ClientTest\obj\Debug\netcoreapp2.1\ClientTest.pdb

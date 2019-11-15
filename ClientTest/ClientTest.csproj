@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="StratusCloudNetworking">
       <HintPath>..\StratusCloudNetworking\bin\Debug\netstandard2.0\StratusCloudNetworking.dll</HintPath>
     </Reference>

@@ -1,4 +1,5 @@
 ﻿using System;
+using StratusCloudNetworking;
 
 namespace ClientTest
 {
@@ -14,13 +15,18 @@ namespace ClientTest
 
             client.OnConnectionError = OnError;
             client.OnConnectedToMaster = OnConnected;
-
+            client.OnNetworkMessageReceived = OnNetworkMessageRecieved;
             client.StartClient(conn, sett) ;
 
             while (true)
             {
                 System.Threading.Thread.Sleep(100);
             }
+        }
+
+        private static void OnNetworkMessageRecieved(NetworkMessage obj)
+        {
+            
         }
 
         public static void OnError(Exception e)
