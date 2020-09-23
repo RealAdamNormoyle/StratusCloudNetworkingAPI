@@ -35,6 +35,9 @@
           "lib/netstandard2.0/Newtonsoft.Json.dll": {}
         }
       },
+      "SimpleJson/0.38.0": {
+        "type": "package"
+      },
       "System.Security.AccessControl/4.7.0-preview3.19551.4": {
         "type": "package",
         "dependencies": {
@@ -257,6 +260,19 @@
         "packageIcon.png"
       ]
     },
+    "SimpleJson/0.38.0": {
+      "sha512": "Qvxm8S8fXa6/U6GLm1CJtDIqFFYKKw8cVaqMA/0I68q2avYZijt1IeEw6Y6PD2u5Hln1WrIR30ZseZOAWI8Ykg==",
+      "type": "package",
+      "path": "simplejson/0.38.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "SimpleJson.psm1",
+        "content/SimpleJson.cs.pp",
+        "simplejson.0.38.0.nupkg.sha512",
+        "simplejson.nuspec"
+      ]
+    },
     "System.Security.AccessControl/4.7.0-preview3.19551.4": {
       "sha512": "TY/z9Ng3PykLL4pgMiYlX+bJrOAz0unrmKn2nbnUBkWOq8UujFcu1ZM3nxA1HXTM4+QaSYdnLnskXgzbMwFz5g==",
       "type": "package",
@@ -389,6 +405,7 @@
     ".NETStandard,Version=v2.0": [
       "NETStandard.Library >= 2.0.3",
       "Newtonsoft.Json >= 12.0.3",
+      "SimpleJson >= 0.38.0",
       "System.Security.Permissions >= 4.7.0-preview3.19551.4"
     ]
   },
@@ -445,6 +462,10 @@
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[12.0.3, )"
+          },
+          "SimpleJson": {
+            "target": "Package",
+            "version": "[0.38.0, )"
           },
           "System.Security.Permissions": {
             "target": "Package",

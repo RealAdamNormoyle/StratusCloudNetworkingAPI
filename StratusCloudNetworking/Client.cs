@@ -5,138 +5,402 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Events;
+using System.Runtime;
+
 
 namespace StratusCloudNetworking
 {
-    public class Client
+    public class NetworkClient : MonoBehaviour
     {
-        ClientSettings clientSettings;
-        ConnectionSettings connectionSettings;
-        Socket socket;
-        byte[] incomingBuffer = new byte[1024];
-        byte[] sendBuffer = new byte[1024];
+        public static NetworkClient Instance;
+        public string masterIP = "52.17.186.16";
 
-        public Action OnConnectedToMaster;
-        public Action<Exception> OnConnectionError;
-        public Action<NetworkMessage> OnNetworkMessageReceived;
+        string m_uid;
+        bool m_connectedToMaster;
+        ClientConnection m_masterConnection;
+        ClientConnection m_serverConnection;
 
-        BinaryFormatter binaryFormatter = new BinaryFormatter();
-        Stream bufferStream;
+        byte[] m_incomingBuffer;
+        public Timer stateUpdateTimer;
 
-        public void StartClient(ConnectionSettings _connectionSettings, ClientSettings _clientSettings)
+        // ManualResetEvent instances signal completion.  
+        private ManualResetEvent connectDone = new ManualResetEvent(false);
+        private ManualResetEvent sendDone = new ManualResetEvent(false);
+        private ManualResetEvent receiveDone = new ManualResetEvent(false);
+        public ManualResetEvent messageParsed = new ManualResetEvent(false);
+
+
+        //[Serializable] public class OnConnectedToMasterEvent : Action { }
+        public Action onConnectedToMaster;
+
+        public Action onConnectedToServer;
+
+        public Action<NetworkMessage> onReceivedMessage;
+
+        public Action onDisconnect;
+
+
+        public void Start()
         {
-            connectionSettings = _connectionSettings;
-            clientSettings = _clientSettings;
-            socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, _connectionSettings.protocol);
-            ConnectToMasterServer();
+            Instance = this;
+            m_uid = Guid.NewGuid().ToString();
         }
 
-        public void ConnectToMasterServer()
+        public void ConnectToMaster()
         {
-            try
-            {
-                socket.Connect(new IPEndPoint(IPAddress.Parse(StratusCloudNetwork.masterServer), connectionSettings.port));
-                socket.BeginReceive(incomingBuffer, 0, 1024, SocketFlags.None, ReceiveData, socket);
-            }
-            catch (Exception e)
-            {
-                OnConnectionError(e);
-            }
+            Debug.Log("Attempting to connect to master server");
+            //connectDone.Reset();
+            m_masterConnection = new ClientConnection();
+
+            IPHostEntry ipHostInfo = Dns.GetHostEntry(masterIP);
+            IPAddress ipAddress = ipHostInfo.AddressList[0];
+            IPEndPoint remoteEP = new IPEndPoint(ipAddress, 2727);
+            m_masterConnection.socket = new Socket(ipAddress.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
+
+            // Connect to the remote endpoint.  
+            m_masterConnection.socket.BeginConnect(remoteEP,
+                new AsyncCallback(MasterConnectCallback), m_masterConnection);
+            //connectDone.WaitOne();
         }
 
-        private void ReceiveData(IAsyncResult ar)
+        public void StartMatchMaking()
         {
-            int count = 0;
-            Socket client = null;
-
-            try
+            if (!m_connectedToMaster)
             {
-                client = (Socket)ar.AsyncState;
-                count = client.EndReceive(ar);
-            }
-            catch (SocketException e)
-            {
-
-                OnConnectionError(e);
-
+                Debug.LogError("Cannot start matchmaking when not connected to master server");
+                ConnectToMaster();
                 return;
             }
 
+            NetworkMessage msg = new NetworkMessage();
+            msg.eventID = (int)(NetworkEvent.ClientMatchRequest);
+            msg.UID = m_uid;
+            SendMessage(m_masterConnection, msg);
+        }
 
-            if (count < 1)
-                return;
+        private void MasterConnectCallback(IAsyncResult ar)
+        {
+            connectDone.Set();
 
-            byte[] dataBuffer = new byte[count];
-            Array.Copy(incomingBuffer, dataBuffer, count);
-            bufferStream = new MemoryStream(dataBuffer);
-            NetworkMessage message = (NetworkMessage)binaryFormatter.Deserialize(bufferStream);
-            bufferStream.Close();
-
-            switch ((NetworkEventType)message.eventCode)
+            try
             {
-                case NetworkEventType.ClientConnectionData:
-                    OnConnectedToMaster();
-                    break;
-                case NetworkEventType.ServerConnectionData:
-                    SendClientInfoToServer();
-                    break;
-                case NetworkEventType.CreateRoomResponse:
 
-                    break;
-                default:
-                    OnNetworkMessageReceived(message);
-                    break;
+
+                // Complete the connection.  
+                m_masterConnection.socket.EndConnect(ar);
+                m_connectedToMaster = true;
+                Debug.Log("Connected to master server");
+                // Signal that the connection has been made.  
+                NetworkMessage msg = new NetworkMessage();
+                msg.eventID = (int)NetworkEvent.ClientRegister;
+                msg.SetData(new { uid = m_uid });
+                msg.UID = m_uid;
+                SendMessage(m_masterConnection, msg);
+
+                if (onConnectedToMaster != null)
+                    onConnectedToMaster.Invoke();
+            }
+            catch (Exception e)
+            {
+                m_connectedToMaster = false;
+                Debug.Log($"There was an error connecting to the master server : {e}");
             }
 
 
-            Console.Out.WriteLine(string.Format("Received Data, total bytes : {0}, EndPoint : {1}, Event : {2}", count, client.RemoteEndPoint.ToString(), message.eventCode));
-            client.BeginReceive(incomingBuffer, 0, 1024, SocketFlags.None, ReceiveData, client);
+        }
+
+        private void ConnectToServer(string ip)
+        {
+            Debug.Log($"connecting to server : {ip}");
+
+            IPHostEntry ipHostInfo = Dns.GetHostEntry(ip);
+            IPAddress ipAddress = ipHostInfo.AddressList[0];
+            IPEndPoint remoteEP = new IPEndPoint(ipAddress.MapToIPv4(), 2728);
+            m_serverConnection.socket = new Socket(ipAddress.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
+
+            // Connect to the remote endpoint.  
+            m_serverConnection.socket.BeginConnect(remoteEP,new AsyncCallback(ServerConnectCallback), m_serverConnection);
 
         }
 
-        void SendClientInfoToServer()
+        private void ServerConnectCallback(IAsyncResult ar)
         {
-            ClientInfo info = new ClientInfo();
-            info.appUID = clientSettings.appUID;
-            info.appVersion = clientSettings.appVersion;
-            info.nickName = clientSettings.nickName;
 
-            byte[] buffer = new byte[1024];
-            Stream stream = new MemoryStream();
-            binaryFormatter.Serialize(stream, info);
-            buffer = ((MemoryStream)stream).ToArray();
-            stream.Close();
-
-            SendNetworkMessage(new NetworkMessage() { eventCode = (byte)NetworkEventType.ClientConnectionData, sendOption = (byte)SendOptions.Server, data = buffer });
-        }
-
-        void SendNetworkMessage(NetworkMessage message)
-        {
             try
             {
-                bufferStream = new MemoryStream();
-                binaryFormatter.Serialize(bufferStream, message);
-                sendBuffer = ((MemoryStream)bufferStream).ToArray();
-                bufferStream.Close();
-                socket.BeginSend(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, new AsyncCallback(OnSend), socket);
+                // Complete the connection.  
+                m_serverConnection.socket.EndConnect(ar);
+
+                Debug.Log($"connected to server");
+                NetworkMessage msg = new NetworkMessage();
+                msg.eventID = (int)NetworkEvent.ClientRegister;
+                msg.SetData(new { uid = m_uid });
+                msg.UID = m_uid;
+                SendMessage(m_serverConnection, msg);
+
+                if (onConnectedToServer != null)
+                    onConnectedToServer.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+
+            }
+
+
+        }
+
+        private void SendMessage(ClientConnection conn, NetworkMessage msg)
+        {
+            conn.lastSentMessage = msg;
+            BinaryFormatter bf = new BinaryFormatter();
+            MemoryStream st = new MemoryStream();
+            bf.Serialize(st, msg);
+            byte[] buffer = st.GetBuffer();
+
+            byte[] byteDataLength = BitConverter.GetBytes(buffer.Length);
+            conn.outgoingBuffer = buffer;
+            conn.socket.BeginSend(byteDataLength, 0, byteDataLength.Length, 0, new AsyncCallback(OnSendMessageHeader), conn);
+        }
+
+        void OnSendMessageHeader(IAsyncResult ar)
+        {
+            var conn = ((ClientConnection)ar.AsyncState);
+            conn.socket.EndSend(ar);
+            Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
+            conn.socket.BeginSend(conn.outgoingBuffer, 0, conn.outgoingBuffer.Length, 0, new AsyncCallback(SendCallback), conn);
+
+        }
+
+        private void SendCallback(IAsyncResult ar)
+        {
+            sendDone.Set();
+            try
+            {
+                // Retrieve the socket from the state object.
+                var state = ((ClientConnection)ar.AsyncState);
+                // Complete sending the data to the remote device.  
+                int bytesSent = state.socket.EndSend(ar);
+                state.bufferSize = 0;
+                state.incomingBuffer = new byte[1024];
+                state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
 
             }
             catch (Exception e)
             {
-                OnConnectionError(e);
+                
+            }
+        }
+
+        private void ReadCallback(IAsyncResult ar)
+        {
+            ClientConnection conn = (ClientConnection)ar.AsyncState;
+            try
+            {
+                Socket handler = conn.socket;
+                int bytesRead = handler.EndReceive(ar);
+
+                if (bytesRead > 0)
+                {
+                    Console.WriteLine($"incoming {bytesRead} bytes");
+                    if (bytesRead == 4)
+                    {
+                        //This is a message header
+                        var foo = new List<byte>(conn.incomingBuffer);
+                        var bar = foo.GetRange(0, bytesRead).ToArray();
+                        conn.bufferSize = BitConverter.ToInt32(bar, 0);
+                        Console.WriteLine($"Incoming Message : {conn.bufferSize} bytes");
+                        conn.incomingBuffer = new byte[1024];
+                        conn.totalBuffer.Clear();
+                        handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+
+                    }
+                    else if(conn.bufferSize > 0)
+                    {
+                        var foo = new List<byte>(conn.incomingBuffer);
+                        foo.RemoveRange(bytesRead, conn.incomingBuffer.Length - bytesRead);
+                        conn.totalBuffer.AddRange(foo);
+
+                        if (conn.totalBuffer.Count >= conn.bufferSize)
+                        {
+                            messageParsed.Reset();
+                            BinaryFormatter bf = new BinaryFormatter();
+                            NetworkMessage message = bf.Deserialize(new MemoryStream(conn.totalBuffer.ToArray())) as NetworkMessage;
+                            Console.WriteLine($"Got message {message.eventID} from {conn.ip}");
+
+
+                            ParseNetworkMessage(message, conn);
+                            messageParsed.WaitOne();
+
+                            conn.incomingBuffer = new byte[1024];
+                            conn.bufferSize = 0;
+                            conn.totalBuffer.Clear();
+                            handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+
+                        }
+                        else
+                        {
+                            conn.incomingBuffer = new byte[1024];
+                            handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+                        }
+
+                    }
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private void ParseNetworkMessage(NetworkMessage message, ClientConnection conn)
+        {
+            if (onReceivedMessage != null)
+                onReceivedMessage.Invoke(message);
+
+            switch ((NetworkEvent)message.eventID)
+            {
+                case NetworkEvent.MasterMatchResponse:
+                    ConnectToServer(message.GetDataProperty<string>("ip", NetworkMessage.PropType.String));
+                    break;
+                case NetworkEvent.ServerAck:
+                    stateUpdateTimer = new Timer(OnStateUpdateTimer, null, 100, 100);
+                    RemoteGameStateUpdate(message.data);
+                    break;
+                case NetworkEvent.ObjectSpawn:
+                    string name = message.GetDataProperty<string>("name", NetworkMessage.PropType.String);
+                    string id = message.GetDataProperty<string>("uid", NetworkMessage.PropType.String);
+                    SpawnRemoteObject(name, id);
+                    break;
+                case NetworkEvent.GameStateUpdate:
+                    RemoteGameStateUpdate(message.data);
+                    break;
+
             }
 
-            Console.Out.WriteLine(string.Format("Sent Data, total bytes : {0}, EndPoint : {1}, Event : {2}", sendBuffer.Length, socket.RemoteEndPoint.ToString(), message.eventCode));
-
+            messageParsed.Set();
 
         }
 
-        private void OnSend(IAsyncResult ar)
+        private void OnStateUpdateTimer(object state)
         {
-            Socket client = (Socket)ar.AsyncState;
-            int count = client.EndSend(ar);
+            NetworkMessage msg = new NetworkMessage();
+            msg.eventID = (int)NetworkEvent.ClientStateUpdate;
+            Dictionary<string, string> s = new Dictionary<string, string>();
+
+            foreach (var item in spawnedObjects)
+            {
+                if (item.Value.isLocalObject)
+                {
+                    s.Add(item.Key, item.Value.GetData());
+                }
+            }
+
+            msg.SetData(new { uid = m_uid, states = s});
+            msg.UID = m_uid;
+            SendMessage(m_masterConnection, msg);
         }
+
+        void RemoteGameStateUpdate(string data)
+        {
+            var states = SimpleJSON.JSON.Parse(data)["states"].AsArray;
+            foreach (var item in states)
+            {
+                if (spawnedObjects.ContainsKey(item.Key))
+                {
+                    spawnedObjects[item.Key].SetData(item.Value);
+                }
+                else
+                {
+                    SpawnRemoteObject(item.Value["name"], item.Value["uid"]);
+                    spawnedObjects[item.Key].SetData(item.Value);
+
+                }
+            }
+        }
+
+        #region Objects
+
+        public Dictionary<string, GameObject> registeredPrefabs = new Dictionary<string, GameObject>();
+        public Dictionary<string, NetworkObject> spawnedObjects = new Dictionary<string, NetworkObject>();
+
+        public List<string> GetLocalObjectData()
+        {
+            var s = new List<string>();
+            foreach (var item in spawnedObjects)
+            {
+                if (item.Value.isLocalObject)
+                {
+                    s.Add(item.Value.GetData());
+                }
+            }
+
+            return s;
+        }
+
+        public void SetRemoteObjectData(List<string> s)
+        {
+            foreach (var item in s)
+            {
+                var d = SimpleJSON.JSON.Parse(item);
+                if (!spawnedObjects[d["uid"]].isLocalObject)
+                {
+                    spawnedObjects[d["uid"]].SetData(item);
+                }
+            }
+        }
+
+        public void RegisterNetworkPrefab(GameObject obj,string name)
+        {
+            if(registeredPrefabs.ContainsKey(name))
+            {
+                Debug.Log($"Object {name} allready registered");
+                return;
+            }
+
+            registeredPrefabs.Add(name, obj);
+        }
+
+        public void SpawnRemoteObject(string name, string uid)
+        {
+            var gobj = Instantiate(registeredPrefabs[name]);
+            var ngobj = gobj.GetComponent<NetworkObject>();
+            if (ngobj == null)
+                ngobj = gobj.AddComponent<NetworkObject>();
+
+            ngobj.SetRemoteObject(uid,name);
+            spawnedObjects.Add(uid, ngobj);
+        }
+
+        public GameObject SpawnNetworkObject(string obj)
+        {
+            if (!registeredPrefabs.ContainsKey(name))
+            {
+                Debug.Log($"Object {name} not registered");
+                return null;
+            }
+
+            var gobj = Instantiate(registeredPrefabs[obj]);
+            var ngobj = gobj.GetComponent<NetworkObject>();
+            if (ngobj == null)
+                ngobj = gobj.AddComponent<NetworkObject>();
+
+            string objUid = ngobj.CreateLocalObject(obj);
+            spawnedObjects.Add(objUid, ngobj);
+
+            var msg = new NetworkMessage();
+            msg.UID = m_uid;
+            msg.eventID = (int)NetworkEvent.ObjectSpawn;
+            msg.SetData(new {name = obj,uid = objUid });
+            SendMessage(m_serverConnection, msg);
+            return gobj;
+        }
+
+        #endregion
     }
-
-
 }

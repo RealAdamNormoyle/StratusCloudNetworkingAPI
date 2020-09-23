@@ -1,5 +1,4 @@
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp2.1\StratusMasterServer.csprojAssemblyReference.cache
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp2.1\StratusMasterServer.csproj.CoreCompileInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp2.1\StratusMasterServer.AssemblyInfoInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp2.1\StratusMasterServer.AssemblyInfo.cs
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\bin\Debug\netcoreapp2.1\StratusMasterServer.deps.json

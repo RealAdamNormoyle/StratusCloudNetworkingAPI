@@ -4,9 +4,21 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>output\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="SimpleJson" Version="0.38.0" />
     <PackageReference Include="System.Security.Permissions" Version="4.7.0-preview3.19551.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>D:\UnityEditors\2019.3.6f1\Editor\Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

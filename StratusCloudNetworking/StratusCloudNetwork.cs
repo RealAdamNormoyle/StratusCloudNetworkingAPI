@@ -6,74 +6,61 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using Newtonsoft.Json;
 
 namespace StratusCloudNetworking
 {
     public static class StratusCloudNetwork
     {
-        public const string masterServer = "192.168.1.16";
+        public const string masterServer = "192.168.1.37";
         public const string databaseServer = "http://192.168.1.16/gameserver/masterserver.php";
         public static HttpClient httpClient = new HttpClient();
     }
 
-    public enum NetworkEventType
+    public class ClientConnection
     {
-        ServerConnectionData,
-        ClientConnectionData,
-        RoomListRequest,
-        RoomListResponse,
-        CreateRoomRequest,
-        CreateRoomResponse,
-        JoinRoomRequest,
-        JoinRoomResponse,
-        WrongAppID
-    }
-
-    public enum SendOptions
-    {
-        Server,
-        All
-    }
-
-    public struct ClientSettings
-    {
-        public string appUID;
-        public int appVersion;
-        public string nickName;
-
-    }
-
-    public struct ClientConnection
-    {
-        public int ID;
-        public string currentRoom;
+        public int uid;
         public Socket socket;
-        public int appVersion;
         public string nickName;
-        public string appID;
-
+        public int bufferSize;
+        public byte[] incomingBuffer = new byte[1024];
+        public List<byte> totalBuffer = new List<byte>();
+        public NetworkMessage lastSentMessage;
+        internal object ip;
+        public string room;
+        internal byte[] outgoingBuffer;
     }
 
-    public struct ConnectionSettings
+    [System.Serializable]
+    public class ServerReference
     {
-        public SocketType socketType;
-        public ProtocolType protocol;
-        public int port;
+        public string uid;
+        public string ip;
+        public RoomReference[] rooms;
     }
 
-    public struct Room
+    [System.Serializable]
+    public class RoomReference
     {
-        public List<ClientConnection> clients;
-        public int maxClients;
+        public string uid;
+        public bool isPlaying;
+        public int clients;
+    }
+
+    [System.Serializable]
+    public struct ServerDiags
+    {
+        public float cpuLoad;
+        public float networkLoad;
+        public int uptime;
+    }
+
+    public class Room
+    {
+        public string uid = Guid.NewGuid().ToString();
+        public List<Connection> clients = new List<Connection>();
         public string level;
-        public string gameMode;
-    }
-
-    public enum SocketType
-    {
-        Default,
-        WebSocket
+        public bool isPlaying;
+        public Dictionary<string, string> clientStates = new Dictionary<string, string>();
     }
 
 }

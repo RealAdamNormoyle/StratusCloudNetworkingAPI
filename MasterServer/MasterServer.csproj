@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SimpleJson" Version="0.38.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StratusCloudNetworking\StratusCloudNetworking.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -5,9 +5,9 @@ C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\bin\Rel
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\bin\Release\netcoreapp2.1\StratusMasterServer.pdb
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\bin\Release\netcoreapp2.1\StratusCloudNetworking.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\bin\Release\netcoreapp2.1\StratusCloudNetworking.pdb
-C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.csproj.CoreCompileInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.AssemblyInfoInputs.cache
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.AssemblyInfo.cs
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.csproj.CopyComplete
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.pdb
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Release\netcoreapp2.1\StratusMasterServer.csprojAssemblyReference.cache

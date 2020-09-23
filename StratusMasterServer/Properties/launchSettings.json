@@ -1,7 +1,9 @@
 {
   "profiles": {
     "StratusMasterServer": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "1000",
+      "nativeDebugging": false
     }
   }
 }

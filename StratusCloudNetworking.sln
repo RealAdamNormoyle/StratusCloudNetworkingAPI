@@ -5,9 +5,15 @@ VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratusCloudNetworking", "StratusCloudNetworking\StratusCloudNetworking.csproj", "{403572BD-7DEB-440B-AD18-C33E43F432E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StratusMasterServer", "StratusMasterServer\StratusMasterServer.csproj", "{D6267511-E60B-46A3-A300-7342340D7163}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratusMasterServer", "StratusMasterServer\StratusMasterServer.csproj", "{D6267511-E60B-46A3-A300-7342340D7163}"
+	ProjectSection(ProjectDependencies) = postProject
+		{403572BD-7DEB-440B-AD18-C33E43F432E0} = {403572BD-7DEB-440B-AD18-C33E43F432E0}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTest", "ClientTest\ClientTest.csproj", "{BC83D0A3-73CD-47C3-A604-5141F8F8539F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StratusGameServer", "StratusGameServer\StratusGameServer.csproj", "{6FB74C42-FC79-405C-8D21-9A296283733D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{403572BD-7DEB-440B-AD18-C33E43F432E0} = {403572BD-7DEB-440B-AD18-C33E43F432E0}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +29,10 @@ Global
 		{D6267511-E60B-46A3-A300-7342340D7163}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6267511-E60B-46A3-A300-7342340D7163}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6267511-E60B-46A3-A300-7342340D7163}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BC83D0A3-73CD-47C3-A604-5141F8F8539F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BC83D0A3-73CD-47C3-A604-5141F8F8539F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BC83D0A3-73CD-47C3-A604-5141F8F8539F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BC83D0A3-73CD-47C3-A604-5141F8F8539F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FB74C42-FC79-405C-8D21-9A296283733D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FB74C42-FC79-405C-8D21-9A296283733D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FB74C42-FC79-405C-8D21-9A296283733D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FB74C42-FC79-405C-8D21-9A296283733D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

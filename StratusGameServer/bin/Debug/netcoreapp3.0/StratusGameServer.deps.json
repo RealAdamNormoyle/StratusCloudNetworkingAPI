@@ -1,0 +1,247 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v3.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v3.0": {
+      "StratusGameServer/1.0.0": {
+        "dependencies": {
+          "Newtonsoft.Json": "12.0.3",
+          "StratusCloudNetworking": "1.0.0"
+        },
+        "runtime": {
+          "StratusGameServer.dll": {}
+        }
+      },
+      "Microsoft.NETCore.Platforms/3.1.0-preview3.19551.4": {},
+      "Microsoft.Win32.SystemEvents/4.7.0-preview3.19551.4": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "3.1.0-preview3.19551.4"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.Win32.SystemEvents.dll": {
+            "assemblyVersion": "4.0.2.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/netcoreapp3.0/Microsoft.Win32.SystemEvents.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "4.0.2.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "Newtonsoft.Json/12.0.3": {
+        "runtime": {
+          "lib/netstandard2.0/Newtonsoft.Json.dll": {
+            "assemblyVersion": "12.0.0.0",
+            "fileVersion": "12.0.3.23909"
+          }
+        }
+      },
+      "SimpleJson/0.38.0": {},
+      "System.Drawing.Common/4.7.0-preview3.19551.4": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "3.1.0-preview3.19551.4",
+          "Microsoft.Win32.SystemEvents": "4.7.0-preview3.19551.4"
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.Drawing.Common.dll": {
+            "assemblyVersion": "4.0.0.1",
+            "fileVersion": "4.6.26919.2"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/unix/lib/netcoreapp3.0/System.Drawing.Common.dll": {
+            "rid": "unix",
+            "assetType": "runtime",
+            "assemblyVersion": "4.0.2.0",
+            "fileVersion": "4.700.19.55104"
+          },
+          "runtimes/win/lib/netcoreapp3.0/System.Drawing.Common.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "4.0.2.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "System.Security.AccessControl/4.7.0-preview3.19551.4": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "3.1.0-preview3.19551.4",
+          "System.Security.Principal.Windows": "4.7.0-preview3.19551.4"
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.Security.AccessControl.dll": {
+            "assemblyVersion": "4.1.3.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/netcoreapp2.0/System.Security.AccessControl.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "4.1.3.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "System.Security.Permissions/4.7.0-preview3.19551.4": {
+        "dependencies": {
+          "System.Security.AccessControl": "4.7.0-preview3.19551.4",
+          "System.Windows.Extensions": "4.7.0-preview3.19551.4"
+        },
+        "runtime": {
+          "lib/netcoreapp3.0/System.Security.Permissions.dll": {
+            "assemblyVersion": "4.0.3.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "System.Security.Principal.Windows/4.7.0-preview3.19551.4": {
+        "runtime": {
+          "lib/netstandard2.0/System.Security.Principal.Windows.dll": {
+            "assemblyVersion": "4.1.3.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/unix/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
+            "rid": "unix",
+            "assetType": "runtime",
+            "assemblyVersion": "4.1.3.0",
+            "fileVersion": "4.700.19.55104"
+          },
+          "runtimes/win/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "4.1.3.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "System.Windows.Extensions/4.7.0-preview3.19551.4": {
+        "dependencies": {
+          "System.Drawing.Common": "4.7.0-preview3.19551.4"
+        },
+        "runtime": {
+          "lib/netcoreapp3.0/System.Windows.Extensions.dll": {
+            "assemblyVersion": "4.0.1.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/netcoreapp3.0/System.Windows.Extensions.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "4.0.1.0",
+            "fileVersion": "4.700.19.55104"
+          }
+        }
+      },
+      "StratusCloudNetworking/1.0.0": {
+        "dependencies": {
+          "Newtonsoft.Json": "12.0.3",
+          "SimpleJson": "0.38.0",
+          "System.Security.Permissions": "4.7.0-preview3.19551.4",
+          "UnityEngine": "0.0.0.0"
+        },
+        "runtime": {
+          "StratusCloudNetworking.dll": {}
+        }
+      },
+      "UnityEngine.Reference/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "StratusGameServer/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.NETCore.Platforms/3.1.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Clr2Jue6oyBlnsVf9g5qjoi06+QDYVq+U32buU9W+mRYeIFg4LXeJei1q6P/1niiKX8WIVo7KbBnqW80jVcOvw==",
+      "path": "microsoft.netcore.platforms/3.1.0-preview3.19551.4",
+      "hashPath": "microsoft.netcore.platforms.3.1.0-preview3.19551.4.nupkg.sha512"
+    },
+    "Microsoft.Win32.SystemEvents/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-agmxXP9/xsxB6MCGXW6lMKUCe/gmsLYKRSxIUIA7WjjDM4qWzopxZ5ekQzn9qnG37mPh2U5O0yVpPZ3Pfwf7Dg==",
+      "path": "microsoft.win32.systemevents/4.7.0-preview3.19551.4",
+      "hashPath": "microsoft.win32.systemevents.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "Newtonsoft.Json/12.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-6mgjfnRB4jKMlzHSl+VD+oUc1IebOZabkbyWj2RiTgWwYPPuaK1H97G1sHqGwPlS5npiF5Q0OrxN1wni2n5QWg==",
+      "path": "newtonsoft.json/12.0.3",
+      "hashPath": "newtonsoft.json.12.0.3.nupkg.sha512"
+    },
+    "SimpleJson/0.38.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Qvxm8S8fXa6/U6GLm1CJtDIqFFYKKw8cVaqMA/0I68q2avYZijt1IeEw6Y6PD2u5Hln1WrIR30ZseZOAWI8Ykg==",
+      "path": "simplejson/0.38.0",
+      "hashPath": "simplejson.0.38.0.nupkg.sha512"
+    },
+    "System.Drawing.Common/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-g5ObAYPAwcFKYOsAvRpiEX8++ox1oXnZcFCHkwCPKyjf3zcHercHSsiWfdGCxwMwOwoj/PF3G9D2iKu+df35Mw==",
+      "path": "system.drawing.common/4.7.0-preview3.19551.4",
+      "hashPath": "system.drawing.common.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "System.Security.AccessControl/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-TY/z9Ng3PykLL4pgMiYlX+bJrOAz0unrmKn2nbnUBkWOq8UujFcu1ZM3nxA1HXTM4+QaSYdnLnskXgzbMwFz5g==",
+      "path": "system.security.accesscontrol/4.7.0-preview3.19551.4",
+      "hashPath": "system.security.accesscontrol.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "System.Security.Permissions/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-m1FHbXBFdR+zRJXNrjvdybG1Bss0vwUuocZiQG0LqfoTcPD3Mjf7HPOpXnvsspHtMEyBgFLmGtQ62IFFBXzCyQ==",
+      "path": "system.security.permissions/4.7.0-preview3.19551.4",
+      "hashPath": "system.security.permissions.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "System.Security.Principal.Windows/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-u+UxjLk5fR2ysJ6RukfzGMeRfFs67E9d1Uk1fDyg/GT7o9TbIkLHH+fVElQdNqLyyeU3KkxCiowfNbif81kCnQ==",
+      "path": "system.security.principal.windows/4.7.0-preview3.19551.4",
+      "hashPath": "system.security.principal.windows.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "System.Windows.Extensions/4.7.0-preview3.19551.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-V9enFEcyBw08pcJZ5+6GAc8lhLQF+4ciyZaRKwXapkdqWlrNSVdl9fWrnSFQd0QnrTT+wM0gUXMfIxkPH6pYoQ==",
+      "path": "system.windows.extensions/4.7.0-preview3.19551.4",
+      "hashPath": "system.windows.extensions.4.7.0-preview3.19551.4.nupkg.sha512"
+    },
+    "StratusCloudNetworking/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.Reference/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

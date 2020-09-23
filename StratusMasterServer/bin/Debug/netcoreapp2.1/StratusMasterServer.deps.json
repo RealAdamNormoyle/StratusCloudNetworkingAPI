@@ -1,0 +1,48 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v2.1",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v2.1": {
+      "StratusMasterServer/1.0.0": {
+        "dependencies": {
+          "SimpleJson": "0.38.0",
+          "StratusCloudNetworking": "1.0.0.0"
+        },
+        "runtime": {
+          "StratusMasterServer.dll": {}
+        }
+      },
+      "SimpleJson/0.38.0": {},
+      "StratusCloudNetworking/1.0.0.0": {
+        "runtime": {
+          "StratusCloudNetworking.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "StratusMasterServer/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SimpleJson/0.38.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Qvxm8S8fXa6/U6GLm1CJtDIqFFYKKw8cVaqMA/0I68q2avYZijt1IeEw6Y6PD2u5Hln1WrIR30ZseZOAWI8Ykg==",
+      "path": "simplejson/0.38.0",
+      "hashPath": "simplejson.0.38.0.nupkg.sha512"
+    },
+    "StratusCloudNetworking/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

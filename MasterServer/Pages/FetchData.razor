@@ -1,0 +1,56 @@
+﻿@page "/fetchdata"
+
+<h1>Active Server Register</h1>
+@code{
+    int i = 0;
+}
+<p>List of currently active servers</p>
+
+<p><em>@StratusCloudNetworking.MasterServer.output</em></p>
+
+@if (StratusCloudNetworking.MasterServer.serverConnections.Count > 1)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Address</th>
+                <th>Port</th>
+                <th>Players</th>
+                <th>CPU</th>
+                <th>Network</th>
+                <th>Uptime</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            @foreach (var connection in StratusCloudNetworking.MasterServer.serverConnections)
+            {
+                <tr>
+                    <td>@i</td>
+                    <td>@connection.address</td>
+                    <td>@connection.socket.RemoteEndPoint.ToString()</td>
+                    <td>@(((StratusCloudNetworking.ServerConnection)connection).serverInfo.totalPlayers)</td>
+                    <td>@(((StratusCloudNetworking.ServerConnection)connection).serverInfo.diags.cpuLoad) %</td>
+                    <td>@(((StratusCloudNetworking.ServerConnection)connection).serverInfo.diags.networkLoad) %</td>
+                    <td>@(((StratusCloudNetworking.ServerConnection)connection).serverInfo.diags.uptime)</td>
+
+                </tr>
+                i++;
+            }
+        </tbody>
+    </table>
+
+}
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+}
