@@ -74,6 +74,8 @@ namespace StratusMasterServer
         {
 
             IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("ec2-52-17-186-16.eu-west-1.compute.amazonaws.com").GetValue(0), 2727);
+            //IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("localhost").GetValue(0), 2727);
+
             Console.WriteLine(localEndPoint.Address.ToString());
             socket = new Socket(localEndPoint.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
             try
@@ -115,6 +117,7 @@ namespace StratusMasterServer
             Connection state = new Connection();
             state.socket = handler;
             Console.WriteLine($"Connection Accepted :{state.address}");
+            Console.WriteLine("Waiting for message");
 
             activeConnections.Add(state);
             handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
@@ -131,14 +134,14 @@ namespace StratusMasterServer
                 int bytesRead = handler.EndReceive(ar);
                 if (bytesRead > 0)
                 {
-                    Console.WriteLine($"incoming {bytesRead} bytes");
+                    //Console.WriteLine($"incoming {bytesRead} bytes");
                     if(bytesRead == 4)
                     {
                         //This is a message header
                         var foo = new List<byte>(state.incomingBuffer);
                         var bar = foo.GetRange(0, bytesRead).ToArray();
                         state.bufferSize = BitConverter.ToInt32(bar, 0);
-                        Console.WriteLine($"Incoming Message : {state.bufferSize} bytes");
+                        //Console.WriteLine($"Incoming Message : {state.bufferSize} bytes");
                         state.incomingBuffer = new byte[1024];
                         state.totalBuffer.Clear();
                         handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
@@ -150,7 +153,7 @@ namespace StratusMasterServer
                         foo.RemoveRange(bytesRead, state.incomingBuffer.Length - bytesRead);
                         state.totalBuffer.AddRange(foo);
 
-                        Console.WriteLine($" message size {state.totalBuffer.Count} / {state.bufferSize}");
+                        //Console.WriteLine($" message size {state.totalBuffer.Count} / {state.bufferSize}");
 
                         if (state.totalBuffer.Count == state.bufferSize)
                         {
@@ -165,6 +168,7 @@ namespace StratusMasterServer
                             ParseNetworkMessage(message, state);
 
                             messageParsed.WaitOne();
+                            Console.WriteLine("Waiting for message");
 
                             state.bufferSize = 0;
                             state.incomingBuffer = new byte[1024];
@@ -173,6 +177,8 @@ namespace StratusMasterServer
                         }
                         else
                         {
+                            Console.WriteLine("Waiting for message");
+
                             state.incomingBuffer = new byte[1024];
                             handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
                         }
@@ -192,20 +198,24 @@ namespace StratusMasterServer
         {
             //var data = SimpleJSON.JSON.Parse(message.data);
             //Console.WriteLine($"Message Event : {message.eventID}");
-            Console.WriteLine($"Got message {message.eventID} from {conn.ip}");
+            Console.WriteLine($"Got message {message.eventID} from {conn.address}");
 
             switch ((NetworkEvent)message.eventID)
             {
                 case NetworkEvent.ServerRegister:
                     conn.uid = message.UID;
                     conn.ip = message.GetDataProperty<string>("ip", NetworkMessage.PropType.String);
+                    
                     if (!registeredServers.ContainsKey(conn.uid))
                     {
                         Console.WriteLine($"Server registered with uid {conn.uid}");
                         registeredServers.Add(conn.uid, conn);
+                        Console.WriteLine(message.GetDataProperty<string>("serverReference", NetworkMessage.PropType.String));
+                        registeredServers[conn.uid].serverReference = ParseServerReference(message.GetDataProperty<string>("serverReference", NetworkMessage.PropType.String));
                         NetworkMessage m = new NetworkMessage();
                         m.eventID = (int)NetworkEvent.ServerRegister;
                         SendMessage(conn, m);
+
                     }
                     break;
                 case NetworkEvent.ServerHeartbeat:
@@ -224,6 +234,7 @@ namespace StratusMasterServer
                     if (registeredServers.ContainsKey(message.UID))
                     {
                         registeredServers[message.UID].serverReference = (ServerReference)message.GetDataProperty<ServerReference>("serverReference",NetworkMessage.PropType.Object);
+                        
                     }
                     break;
             }
@@ -234,14 +245,16 @@ namespace StratusMasterServer
 
         public static void SendMessage(Connection conn, NetworkMessage message)
         {
-            Console.WriteLine($"Sending message {message.eventID} to {conn.ip}");
+            Console.WriteLine($"Sending message {message.eventID} to {conn.address}");
+            message.UID = "MASTER";
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream st = new MemoryStream();
             bf.Serialize(st, message);
             byte[] buffer = st.GetBuffer();
-
             byte[] byteDataLength = BitConverter.GetBytes(buffer.Length);
             conn.outgoingBuffer = buffer;
+            //Console.WriteLine($"sending { BitConverter.ToInt32(byteDataLength)} bytes");
+
             conn.socket.BeginSend(byteDataLength, 0, byteDataLength.Length, 0, new AsyncCallback(OnMessageHeaderSent), conn);
 
         }
@@ -250,7 +263,7 @@ namespace StratusMasterServer
         {
             var conn = ((Connection)ar.AsyncState);
             conn.socket.EndSend(ar);
-            Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
+            //Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
             conn.socket.BeginSend(conn.outgoingBuffer, 0, conn.outgoingBuffer.Length, 0, new AsyncCallback(SendCallback), conn);
         }
 
@@ -263,8 +276,7 @@ namespace StratusMasterServer
                 Socket client = conn.socket;
                 // Complete sending the data to the remote device.  
                 int bytesSent = conn.socket.EndSend(ar);
-                conn.outgoingBuffer = new byte[1024];
-                Console.WriteLine("Sent {0} bytes to server.", bytesSent);
+                //Console.WriteLine("Sent {0} bytes to server.", bytesSent);
 
                 //conn.incomingBuffer = new byte[1024];
                 //conn.bufferSize = 0;
@@ -277,6 +289,28 @@ namespace StratusMasterServer
                 Console.WriteLine(e.ToString());
             }
         }
+    
+    
+        static ServerReference ParseServerReference(string json)
+        {
+            ServerReference s = new ServerReference();
+            var node = SimpleJSON.JSON.Parse(json);
+            s.ip = node["ip"].ToString();
+            s.uid = node["uid"].ToString();
+            var rs = new List<RoomReference>();
+            foreach (var item in node["rooms"])
+            {
+                var room = new RoomReference();
+                room.uid = item.Value["uid"].ToString();
+                room.clients = (int)item.Value["clients"];
+                room.isPlaying = (bool)item.Value["isPlaying"];
+                rs.Add(room);
+
+            }
+            s.rooms = rs.ToArray();
+            return s;
+        }
+        
     }
 }
 

@@ -24,9 +24,9 @@ namespace StratusGameServer
         static int PlayerCount { get { return activeConnections.Count; } }
 
         public static Timer heartbeatTimer;
-        public static ConcurrentBag<Room> rooms = new ConcurrentBag<Room>();
-        public static int maxRooms = 20;
-        public static int maxPlayersPerRoom = 50;
+        public static List<Room> rooms = new List<Room>();
+        public static int maxRooms = 2;
+        public static int maxPlayersPerRoom = 2;
 
         // ManualResetEvent instances signal completion.  
         private static ManualResetEvent connectDone =
@@ -44,7 +44,7 @@ namespace StratusGameServer
         static void Main(string[] args)
         {
             uid = Guid.NewGuid().ToString();
-            rooms = new ConcurrentBag<Room>();
+            rooms = new List<Room>();
             for (int i = 0; i < maxRooms; i++)
             {
                 rooms.Add(new Room());
@@ -99,17 +99,34 @@ namespace StratusGameServer
                 conn.isServer = true;
                 conn.uid = uid;
                 masterServer = conn;
+
+
+                ServerReference s = new ServerReference();
+                s.ip = localIP;
+                s.rooms = new RoomReference[rooms.Count];
+                int i = 0;
+                foreach (var item in rooms)
+                {
+                    RoomReference r = new RoomReference();
+                    r.isPlaying = item.isPlaying;
+                    r.clients = item.clients.Count;
+                    r.uid = item.uid;
+                    s.rooms[i] = r;
+                    i++;
+                }
+
                 NetworkMessage msg = new NetworkMessage();
                 msg.eventID = (int)NetworkEvent.ServerRegister;
-                msg.SetData(new { uid = uid ,ip = localIP});
+                msg.SetData(new { uid = uid ,ip = localIP, serverReference = s});
                 msg.UID = uid;
                 SendMessage(conn, msg);
                 sendDone.WaitOne();
+                Console.WriteLine("Waiting for message");
 
-                //conn.incomingBuffer = new byte[1024];
-                //conn.bufferSize = 0;
-                //conn.totalBuffer.Clear();
-                //conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+                conn.incomingBuffer = new byte[1024];
+                conn.bufferSize = 0;
+                conn.totalBuffer.Clear();
+                conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
 
             }
             catch (Exception e)
@@ -125,7 +142,7 @@ namespace StratusGameServer
             //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
             //IPAddress ipAddress = ipHostInfo.AddressList[0];
             //Console.WriteLine(Dns.GetHostName());
-
+            //IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("localhost").GetValue(0), 2727);
             IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("ec2-52-17-186-16.eu-west-1.compute.amazonaws.com").GetValue(0), 2728);
             Console.WriteLine(localEndPoint.Address.MapToIPv4());
             Console.WriteLine($"StartListening {localEndPoint.Address.MapToIPv4()}");
@@ -174,8 +191,7 @@ namespace StratusGameServer
                 Connection state = new Connection();
                 state.socket = handler;
                 Console.WriteLine($"Connection Accepted :{state.address}");
-                handler.Blocking = false;
-
+                Console.WriteLine("Waiting for message");
 
                 handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
 
@@ -199,12 +215,12 @@ namespace StratusGameServer
 
                 if (bytesRead > 0)
                 {
-                    if (bytesRead == 0)
+                    if (bytesRead == 4)
                     {
                         var foo = new List<byte>(state.incomingBuffer);
                         var bar = foo.GetRange(0, bytesRead).ToArray();
                         state.bufferSize = BitConverter.ToInt32(bar, 0);
-                        Console.WriteLine($"Incoming Message : {state.bufferSize} bytes");
+                        //Console.WriteLine($"Incoming Message : {state.bufferSize} bytes");
                         state.incomingBuffer = new byte[1024];
                         state.totalBuffer.Clear();
                         handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
@@ -221,7 +237,7 @@ namespace StratusGameServer
                             messageParsed.Reset();
                             BinaryFormatter bf = new BinaryFormatter();
                             NetworkMessage message = bf.Deserialize(new MemoryStream(state.totalBuffer.ToArray())) as NetworkMessage;
-                            Console.WriteLine($"Got message {message.eventID} from {state.ip}");
+                            Console.WriteLine($"Got message {message.eventID} from {state.address}");
 
                             ParseNetworkMessage(message, state);
                             messageParsed.WaitOne();
@@ -229,12 +245,16 @@ namespace StratusGameServer
                             state.incomingBuffer = new byte[1024];
                             state.bufferSize = 0;
                             state.totalBuffer.Clear();
+                            Console.WriteLine("Waiting for message");
+
                             state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
                         
                         }
                         else
                         {
                             state.incomingBuffer = new byte[1024];
+                            Console.WriteLine("Waiting for message");
+
                             state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
                         }
                     }
@@ -269,26 +289,30 @@ namespace StratusGameServer
                     SendStateUpdate();
                     break;
                 case NetworkEvent.ClientStateUpdate:
-                    foreach (var item in rooms)
+                    var room = GetRoom(conn.room);
+                    if (room == null)
+                        break;
+
+                    if (room.clientStates.ContainsKey(conn.uid))
+                        room.clientStates[conn.uid] = message.data;
+                    else
+                        room.clientStates.Add(conn.uid, message.data);
+
+                    NetworkMessage m = new NetworkMessage();
+                    m.UID = conn.uid;
+                    m.eventID = (int)NetworkEvent.GameStateUpdate;
+                    m.SetData(new { states = room.clientStates });
+                    SendMessage(conn, m);
+
+                    break;
+                case NetworkEvent.ObjectSpawn:
+                    var r = GetRoom(conn.room);
+                    if (r == null)
+                        break;
+
+                    foreach (var item in r.clients)
                     {
-                        if (item.uid == conn.room)
-                        {
-                            if (item.clientStates.ContainsKey(conn.uid))
-                                item.clientStates[conn.uid] = message.data;
-                            else
-                                item.clientStates.Add(conn.uid, message.data);
-
-                            NetworkMessage m = new NetworkMessage();
-                            m.UID = conn.uid;
-                            m.eventID = (int)NetworkEvent.GameStateUpdate;
-                            m.SetData(new { states = item.clientStates });
-                            SendMessage(conn, m);
-
-
-
-
-                            break;
-                        }
+                        SendMessage(item, message);
                     }
                     break;
             }
@@ -296,9 +320,39 @@ namespace StratusGameServer
             messageParsed.Set();
         }
 
+        public static Room GetRoom(string uid) 
+        {
+            foreach (var item in rooms)
+            {
+                if (item.uid == uid)
+                {
+                    return item;
+                }
+            }
+
+            return null;
+
+        }
+
+        public static Room GetMatchMakingRoom()
+        {
+            Room room = rooms[0];
+            foreach (var item in rooms)
+            {
+                if(item.clients.Count < maxPlayersPerRoom && item.isPlaying == false)
+                {
+                    if(item.clients.Count > room.clients.Count)
+                    {
+                        room = item;
+                    }
+                }
+            }
+            return room;
+        }
+
         public static void SendMessage(Connection conn, NetworkMessage message)
         {
-            Console.WriteLine($"Sending message {message.eventID} to {conn.ip}");
+            Console.WriteLine($"Sending message {message.eventID} to {conn.address}");
             message.UID = uid;
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream st = new MemoryStream();
@@ -306,7 +360,7 @@ namespace StratusGameServer
             byte[] buffer = st.GetBuffer();
             byte[] byteDataLength = BitConverter.GetBytes(buffer.Length);
             conn.outgoingBuffer = buffer;
-            Console.WriteLine($"sending { BitConverter.ToInt32(byteDataLength)} bytes");
+            //Console.WriteLine($"sending { BitConverter.ToInt32(byteDataLength)} bytes");
 
             conn.socket.BeginSend(byteDataLength, 0, byteDataLength.Length, 0, new AsyncCallback(OnMessageHeaderSent), conn);
         }
@@ -314,7 +368,7 @@ namespace StratusGameServer
         public static void OnMessageHeaderSent(IAsyncResult ar)
         {
             var conn = ((Connection)ar.AsyncState);
-            Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
+            //Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
             conn.socket.EndSend(ar);
             conn.socket.BeginSend(conn.outgoingBuffer, 0, conn.outgoingBuffer.Length, 0, new AsyncCallback(SendCallback), conn);
         }
@@ -330,13 +384,13 @@ namespace StratusGameServer
                 // Retrieve the socket from the state object.  
                 Socket client = ((Connection)ar.AsyncState).socket;
                 // Complete sending the data to the remote device.  
-                int bytesSent = client.EndSend(ar);
-                Console.WriteLine($"sent message {bytesSent} bytes");
+                int bytesSent = conn.socket.EndSend(ar);
+                //Console.WriteLine($"sent message {bytesSent} bytes");
 
-                conn.incomingBuffer = new byte[1024];
-                conn.bufferSize = 0;
-                conn.totalBuffer.Clear();
-                conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+                //conn.incomingBuffer = new byte[1024];
+                //conn.bufferSize = 0;
+                //conn.totalBuffer.Clear();
+                //conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
 
             }
             catch (Exception e)
@@ -370,18 +424,30 @@ namespace StratusGameServer
     
         public static void AssignClientToRoom(Connection conn)
         {
-            foreach (var item in rooms)
+            var item = GetMatchMakingRoom();
+            conn.room = item.uid;
+            item.clients.Add(conn);
+            NetworkMessage m = new NetworkMessage();
+            m.UID = conn.uid;
+            m.eventID = (int)NetworkEvent.ServerAck;
+            m.SetData(new { states = item.clientStates,room = conn.room });
+            sendDone.Reset();
+            SendMessage(conn, m);
+            sendDone.WaitOne();
+
+            if (item.clients.Count == maxPlayersPerRoom)
             {
-                if(!item.isPlaying && item.clients.Count < maxPlayersPerRoom)
+                item.isPlaying = true;
+                foreach (var c in item.clients)
                 {
-                    conn.room = item.uid;
-                    item.clients.Add(conn);
-                    NetworkMessage m = new NetworkMessage();
-                    m.UID = conn.uid;
-                    m.eventID = (int)NetworkEvent.ServerAck;
-                    m.SetData(new { states = item.clientStates,room = conn.room });
-                    SendMessage(conn, m);
-                    return;
+                    sendDone.Reset();
+                    NetworkMessage ms = new NetworkMessage();
+                    ms.UID = conn.uid;
+                    ms.eventID = (int)NetworkEvent.GameStart;
+                    ms.SetData(new { level = "TestLevel", mode = "TestMode" });
+                    SendMessage(c, ms);
+                    sendDone.WaitOne();
+
                 }
             }
         }

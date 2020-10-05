@@ -26,6 +26,8 @@ namespace StratusCloudNetworking
 
         byte[] m_incomingBuffer;
         public Timer stateUpdateTimer;
+        public GameObject localPlayerPrefab;
+        public GameObject remotePlayerPrefab;
 
         // ManualResetEvent instances signal completion.  
         private ManualResetEvent connectDone = new ManualResetEvent(false);
@@ -39,9 +41,40 @@ namespace StratusCloudNetworking
 
         public Action onConnectedToServer;
 
+        public Action<string,string> onGameStart;
+
+
         public Action<NetworkMessage> onReceivedMessage;
 
         public Action onDisconnect;
+
+        public List<Action> pending = new List<Action>();
+
+        public void Update()
+        {
+            this.InvokePending();
+        }
+
+        public void Invoke(Action fn)
+        {
+            lock (this.pending)
+            {
+                this.pending.Add(fn);
+            }
+        }
+
+        private void InvokePending()
+        {
+            lock (this.pending)
+            {
+                foreach (Action action in this.pending)
+                {
+                    action();
+                }
+
+                this.pending.Clear();
+            }
+        }
 
 
         public void Start()
@@ -95,11 +128,11 @@ namespace StratusCloudNetworking
                 m_connectedToMaster = true;
                 Debug.Log("Connected to master server");
                 // Signal that the connection has been made.  
-                NetworkMessage msg = new NetworkMessage();
-                msg.eventID = (int)NetworkEvent.ClientRegister;
-                msg.SetData(new { uid = m_uid });
-                msg.UID = m_uid;
-                SendMessage(m_masterConnection, msg);
+                //NetworkMessage msg = new NetworkMessage();
+                //msg.eventID = (int)NetworkEvent.ClientRegister;
+                //msg.SetData(new { uid = m_uid });
+                //msg.UID = m_uid;
+                //SendMessage(m_masterConnection, msg);
 
                 if (onConnectedToMaster != null)
                     onConnectedToMaster.Invoke();
@@ -117,10 +150,11 @@ namespace StratusCloudNetworking
         {
             Debug.Log($"connecting to server : {ip}");
 
-            IPHostEntry ipHostInfo = Dns.GetHostEntry(ip);
-            IPAddress ipAddress = ipHostInfo.AddressList[0];
-            IPEndPoint remoteEP = new IPEndPoint(ipAddress.MapToIPv4(), 2728);
-            m_serverConnection.socket = new Socket(ipAddress.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
+            //IPHostEntry ipHostInfo = Dns.GetHostEntry(ip);
+            //IPAddress ipAddress = ipHostInfo.AddressList[0];
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(ip), 2728);
+            m_serverConnection = new ClientConnection();
+            m_serverConnection.socket = new Socket(remoteEP.Address.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
 
             // Connect to the remote endpoint.  
             m_serverConnection.socket.BeginConnect(remoteEP,new AsyncCallback(ServerConnectCallback), m_serverConnection);
@@ -171,7 +205,7 @@ namespace StratusCloudNetworking
         {
             var conn = ((ClientConnection)ar.AsyncState);
             conn.socket.EndSend(ar);
-            Console.WriteLine($"send { conn.outgoingBuffer.Length} bytes");
+            Debug.Log($"send { conn.outgoingBuffer.Length} bytes");
             conn.socket.BeginSend(conn.outgoingBuffer, 0, conn.outgoingBuffer.Length, 0, new AsyncCallback(SendCallback), conn);
 
         }
@@ -187,50 +221,55 @@ namespace StratusCloudNetworking
                 int bytesSent = state.socket.EndSend(ar);
                 state.bufferSize = 0;
                 state.incomingBuffer = new byte[1024];
+                Debug.Log($"Waiting for message from {state.ip}");
+
                 state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
 
             }
             catch (Exception e)
             {
-                
+                Debug.Log(e);
             }
         }
 
         private void ReadCallback(IAsyncResult ar)
         {
             ClientConnection conn = (ClientConnection)ar.AsyncState;
+            Socket handler = conn.socket;
+
             try
             {
-                Socket handler = conn.socket;
                 int bytesRead = handler.EndReceive(ar);
 
                 if (bytesRead > 0)
                 {
-                    Console.WriteLine($"incoming {bytesRead} bytes");
+                    Debug.Log($"incoming {bytesRead} bytes");
                     if (bytesRead == 4)
                     {
                         //This is a message header
                         var foo = new List<byte>(conn.incomingBuffer);
                         var bar = foo.GetRange(0, bytesRead).ToArray();
                         conn.bufferSize = BitConverter.ToInt32(bar, 0);
-                        Console.WriteLine($"Incoming Message : {conn.bufferSize} bytes");
+                        Debug.Log($"Incoming Message : {conn.bufferSize} bytes");
                         conn.incomingBuffer = new byte[1024];
                         conn.totalBuffer.Clear();
+                        Debug.Log($"Waiting for message from {conn.ip}");
                         handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
 
                     }
-                    else if(conn.bufferSize > 0)
+                    else if (conn.bufferSize > 0)
                     {
                         var foo = new List<byte>(conn.incomingBuffer);
                         foo.RemoveRange(bytesRead, conn.incomingBuffer.Length - bytesRead);
                         conn.totalBuffer.AddRange(foo);
+                        Debug.Log($" message size {conn.totalBuffer.Count} / {conn.bufferSize}");
 
                         if (conn.totalBuffer.Count >= conn.bufferSize)
                         {
                             messageParsed.Reset();
                             BinaryFormatter bf = new BinaryFormatter();
                             NetworkMessage message = bf.Deserialize(new MemoryStream(conn.totalBuffer.ToArray())) as NetworkMessage;
-                            Console.WriteLine($"Got message {message.eventID} from {conn.ip}");
+                            Debug.Log($"Got message {message.eventID} from {conn.ip}");
 
 
                             ParseNetworkMessage(message, conn);
@@ -239,13 +278,16 @@ namespace StratusCloudNetworking
                             conn.incomingBuffer = new byte[1024];
                             conn.bufferSize = 0;
                             conn.totalBuffer.Clear();
+                            Debug.Log($"Waiting for message from {conn.ip}");
                             handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
 
                         }
                         else
                         {
                             conn.incomingBuffer = new byte[1024];
-                            handler.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
+                            Debug.Log($"Waiting for message from {conn.ip}");
+
+                            conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
                         }
 
                     }
@@ -254,7 +296,7 @@ namespace StratusCloudNetworking
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.Log(e);
             }
         }
 
@@ -266,21 +308,23 @@ namespace StratusCloudNetworking
             switch ((NetworkEvent)message.eventID)
             {
                 case NetworkEvent.MasterMatchResponse:
-                    ConnectToServer(message.GetDataProperty<string>("ip", NetworkMessage.PropType.String));
+                    ConnectToServer(message.GetDataProperty<string>("ip", NetworkMessage.PropType.String).Replace("\\", "").Replace("\"", ""));
                     break;
                 case NetworkEvent.ServerAck:
-                    stateUpdateTimer = new Timer(OnStateUpdateTimer, null, 100, 100);
                     RemoteGameStateUpdate(message.data);
                     break;
                 case NetworkEvent.ObjectSpawn:
                     string name = message.GetDataProperty<string>("name", NetworkMessage.PropType.String);
                     string id = message.GetDataProperty<string>("uid", NetworkMessage.PropType.String);
-                    SpawnRemoteObject(name, id);
+                    Instance.Invoke(()=>{SpawnRemoteObject(name, id); });
                     break;
                 case NetworkEvent.GameStateUpdate:
                     RemoteGameStateUpdate(message.data);
                     break;
-
+                case NetworkEvent.GameStart:
+                    stateUpdateTimer = new Timer(OnStateUpdateTimer, null, 200, 200);         
+                    Instance.Invoke(() => { onGameStart.Invoke(message.GetDataProperty<string>("level", NetworkMessage.PropType.String), message.GetDataProperty<string>("mode", NetworkMessage.PropType.String)); });
+                    break;
             }
 
             messageParsed.Set();
@@ -309,6 +353,9 @@ namespace StratusCloudNetworking
         void RemoteGameStateUpdate(string data)
         {
             var states = SimpleJSON.JSON.Parse(data)["states"].AsArray;
+            if (states == null)
+                return;
+
             foreach (var item in states)
             {
                 if (spawnedObjects.ContainsKey(item.Key))
@@ -317,8 +364,11 @@ namespace StratusCloudNetworking
                 }
                 else
                 {
-                    SpawnRemoteObject(item.Value["name"], item.Value["uid"]);
-                    spawnedObjects[item.Key].SetData(item.Value);
+                    Instance.Invoke(() =>
+                    {
+                        SpawnRemoteObject(item.Value["name"], item.Value["uid"]);
+                    });
+                        spawnedObjects[item.Key].SetData(item.Value);
 
                 }
             }
@@ -368,7 +418,15 @@ namespace StratusCloudNetworking
 
         public void SpawnRemoteObject(string name, string uid)
         {
-            var gobj = Instantiate(registeredPrefabs[name]);
+            GameObject gobj;
+            if(name == "PLAYER")
+            {
+                 gobj = Instantiate(remotePlayerPrefab);
+            }
+            else
+            {
+                 gobj = Instantiate(registeredPrefabs[name]);
+            }
             var ngobj = gobj.GetComponent<NetworkObject>();
             if (ngobj == null)
                 ngobj = gobj.AddComponent<NetworkObject>();
@@ -376,6 +434,28 @@ namespace StratusCloudNetworking
             ngobj.SetRemoteObject(uid,name);
             spawnedObjects.Add(uid, ngobj);
         }
+
+        public GameObject SpawnLocalPlayer()
+        {
+            var gobj = Instantiate(localPlayerPrefab);
+            var ngobj = gobj.GetComponent<NetworkObject>();
+            if (ngobj == null)
+                ngobj = gobj.AddComponent<NetworkObject>();
+
+            string objUid = ngobj.CreateLocalObject("PLAYER");
+            spawnedObjects.Add(objUid, ngobj);
+
+            var msg = new NetworkMessage();
+            msg.UID = m_uid;
+            msg.eventID = (int)NetworkEvent.ObjectSpawn;
+            msg.SetData(new { name = "PLAYER", uid = objUid });
+            sendDone.Reset();
+            SendMessage(m_serverConnection, msg);
+            sendDone.WaitOne();
+
+            return gobj;
+        }
+
 
         public GameObject SpawnNetworkObject(string obj)
         {

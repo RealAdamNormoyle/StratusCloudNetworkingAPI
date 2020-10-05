@@ -58,7 +58,7 @@ namespace StratusCloudNetworking
             switch (type)
             {
                 case PropType.String:
-                    return (T)(object)SimpleJSON.JSON.Parse(data)[property].Value;
+                    return (T)(object)SimpleJSON.JSON.Parse(data)[property].ToString();
                 case PropType.Int:
                     return (T)(object)SimpleJSON.JSON.Parse(data)[property].AsInt;
                 case PropType.Float:
@@ -66,7 +66,7 @@ namespace StratusCloudNetworking
                 case PropType.Bool:
                     return (T)(object)SimpleJSON.JSON.Parse(data)[property].AsBool;
                 case PropType.Object:
-                    return (T)(object)Newtonsoft.Json.JsonConvert.DeserializeObject<T>(SimpleJSON.JSON.Parse(data)[property].Value);
+                    return (T)(object)JsonConvert.DeserializeObject<T>(SimpleJSON.JSON.Parse(data)[property].ToString());
                     
             }
 
@@ -110,6 +110,8 @@ namespace StratusCloudNetworking
         ServerAck,
         CustomMessage,
         ObjectSpawn,
-        GameStateUpdate
+        GameStateUpdate,
+        PlayerSpawn,
+        GameStart
     }
 }
