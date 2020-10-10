@@ -21,4 +21,8 @@
     </Reference>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(ProjectDir)output\netstandard2.0\StratusCloudNetworking.dll&quot; &quot;E:\PROJECTS\SovietSleeper\Assets\Plugins\&quot; /Y /I" />
+  </Target>
+
 </Project>

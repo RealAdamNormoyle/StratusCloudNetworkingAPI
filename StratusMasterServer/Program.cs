@@ -51,16 +51,29 @@ namespace StratusMasterServer
                 {
                     foreach (var room in sref.rooms)
                     {
-                        if(!room.isPlaying && room.clients < 50)
+                        if (client.isHostedRoom)
                         {
-                            NetworkMessage message = new NetworkMessage();
-                            message.eventID = (int)NetworkEvent.MasterMatchResponse;
-
-                            message.SetData(new { ip = item.Value.ip });
-                            Console.WriteLine($"Match Response {item.Value.ip}");
-
-                            SendMessage(client, message);
-                            return;
+                            if(!room.isPlaying && room.clients == 0)
+                            {
+                                NetworkMessage message = new NetworkMessage();
+                                message.eventID = (int)NetworkEvent.StartHostedRoom;
+                                message.SetData(new { ip = item.Value.ip });
+                                Console.WriteLine($"Found Empty Room {item.Value.ip}");
+                                SendMessage(client, message);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            if(!room.isPlaying && room.clients < 50)
+                            {
+                                NetworkMessage message = new NetworkMessage();
+                                message.eventID = (int)NetworkEvent.MasterMatchResponse;
+                                message.SetData(new { ip = item.Value.ip });
+                                Console.WriteLine($"Match Response {item.Value.ip}");
+                                SendMessage(client, message);
+                                return;
+                            }
                         }
                     }
                 }
@@ -228,6 +241,12 @@ namespace StratusMasterServer
                         clientMatchmakingQue.Add(conn);
 
                     Console.WriteLine($"Client Match Request {conn.address}");
+                    break;
+                case NetworkEvent.StartHostedRoom:
+                    conn.isHostedRoom = true;
+                    if (!clientMatchmakingQue.Contains(conn))
+                        clientMatchmakingQue.Add(conn);
+
                     break;
                 case NetworkEvent.ServerStateUpdate:
                     Console.WriteLine($"ServerStateUpdate {conn.ip}");

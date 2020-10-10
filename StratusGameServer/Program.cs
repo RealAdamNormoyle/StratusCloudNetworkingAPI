@@ -17,32 +17,27 @@ namespace StratusGameServer
         public static string localIP;
         public static string uid;
         public static bool connectedToMaster;
-        static Socket listenSocket;
-        static Socket masterSocket;
         static Connection masterServer;
         static List<Connection> activeConnections = new List<Connection>();
         static int PlayerCount { get { return activeConnections.Count; } }
+        static Dictionary<string, Connection> allClients = new Dictionary<string, Connection>();
+        static Dictionary<string, MessageList> clientMessageQues = new Dictionary<string, MessageList>();
+        static Dictionary<string, MessageList> clientUDPMessageQues = new Dictionary<string, MessageList>();
 
         public static Timer heartbeatTimer;
+        public static Timer messageQueLoop;
+
         public static List<Room> rooms = new List<Room>();
         public static int maxRooms = 2;
         public static int maxPlayersPerRoom = 2;
 
-        // ManualResetEvent instances signal completion.  
-        private static ManualResetEvent connectDone =
-            new ManualResetEvent(false);
-        private static ManualResetEvent sendDone =
-            new ManualResetEvent(false);
-        private static ManualResetEvent receiveDone =
-            new ManualResetEvent(false);
-        private static ManualResetEvent listenDone =
-            new ManualResetEvent(false);
-        public static ManualResetEvent messageParsed = new ManualResetEvent(false);
+        public static IPEndPoint localEndPoint;
 
-
+        TransportLayer TransportLayer = new TransportLayer();
 
         static void Main(string[] args)
         {
+
             uid = Guid.NewGuid().ToString();
             rooms = new List<Room>();
             for (int i = 0; i < maxRooms; i++)
@@ -50,11 +45,10 @@ namespace StratusGameServer
                 rooms.Add(new Room());
             }
 
-            localIP = new System.Net.WebClient().DownloadString("https://api.ipify.org").Trim();
-
             //ConnectToMaster();
             Task.Factory.StartNew(ConnectToMaster);
-            StartListening();
+            Task.Factory.StartNew(StartListening);
+            UDPListener();
         }
 
         private static void OnHeartbeatTimer(object state)
@@ -93,7 +87,6 @@ namespace StratusGameServer
 
                 // Signal that the connection has been made.  
                 connectDone.Set();
-                sendDone.Reset();
                 Connection conn = new Connection();
                 conn.socket = client;
                 conn.isServer = true;
@@ -120,7 +113,6 @@ namespace StratusGameServer
                 msg.SetData(new { uid = uid ,ip = localIP, serverReference = s});
                 msg.UID = uid;
                 SendMessage(conn, msg);
-                sendDone.WaitOne();
                 Console.WriteLine("Waiting for message");
 
                 conn.incomingBuffer = new byte[1024];
@@ -139,15 +131,14 @@ namespace StratusGameServer
         public static void StartListening()
         {
 
-            //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            //IPAddress ipAddress = ipHostInfo.AddressList[0];
-            //Console.WriteLine(Dns.GetHostName());
+            localEndPoint = new IPEndPoint(IPAddress.Any, 2728);
+
             //IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("localhost").GetValue(0), 2727);
-            IPEndPoint localEndPoint = new IPEndPoint((IPAddress)Dns.GetHostAddresses("ec2-52-17-186-16.eu-west-1.compute.amazonaws.com").GetValue(0), 2728);
             Console.WriteLine(localEndPoint.Address.MapToIPv4());
             Console.WriteLine($"StartListening {localEndPoint.Address.MapToIPv4()}");
             //IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 2728);
             listenSocket = new Socket(localEndPoint.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
+            messageQueLoop = new Timer(OnProcessMessageQue, null, 100, 100);
 
             try
             {
@@ -175,6 +166,21 @@ namespace StratusGameServer
 
         }
 
+        private static void OnProcessMessageQue(object state)
+        {
+            foreach (var item in clientMessageQues)
+            {
+                if (!item.Value.isBusy)
+                {
+                    var message = item.Value.GetNextMessage();
+                    if (message != null)
+                    {
+                        SendQuedMessage(message, allClients[item.Key]);
+                    }
+                }
+            }
+        }
+           
         public static void AcceptCallback(IAsyncResult ar)
         {
 
@@ -190,16 +196,19 @@ namespace StratusGameServer
                 // Create the state object.  
                 Connection state = new Connection();
                 state.socket = handler;
+                IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint tempRemoteEP = (EndPoint)sender;
+                state.udp_socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 Console.WriteLine($"Connection Accepted :{state.address}");
-                Console.WriteLine("Waiting for message");
-
-                handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
-
+                MessageWrapper w = new MessageWrapper();
+                w.client = state;
+                w.buffer = new byte[1024];
+                w.client.socket.BeginReceive(w.buffer, 0, 1024, 0, new AsyncCallback(OnClientReadCallback), w);
             }
-            catch (Exception)
+            catch (Exception e)
             {
 
-                throw;
+                Console.WriteLine(e);
             }
         }
 
@@ -207,7 +216,6 @@ namespace StratusGameServer
         {
             Connection state = (Connection)ar.AsyncState;
             Socket handler = state.socket;
-
 
             try
             {
@@ -226,7 +234,7 @@ namespace StratusGameServer
                         handler.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
 
                     }
-                    else if(state.bufferSize > 0)
+                    else
                     {
                         var foo = new List<byte>(state.incomingBuffer);
                         foo.RemoveRange(bytesRead, state.incomingBuffer.Length-bytesRead);
@@ -234,13 +242,11 @@ namespace StratusGameServer
 
                         if (state.totalBuffer.Count == state.bufferSize)
                         {
-                            messageParsed.Reset();
                             BinaryFormatter bf = new BinaryFormatter();
                             NetworkMessage message = bf.Deserialize(new MemoryStream(state.totalBuffer.ToArray())) as NetworkMessage;
                             Console.WriteLine($"Got message {message.eventID} from {state.address}");
 
                             ParseNetworkMessage(message, state);
-                            messageParsed.WaitOne();
 
                             state.incomingBuffer = new byte[1024];
                             state.bufferSize = 0;
@@ -249,13 +255,6 @@ namespace StratusGameServer
 
                             state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
                         
-                        }
-                        else
-                        {
-                            state.incomingBuffer = new byte[1024];
-                            Console.WriteLine("Waiting for message");
-
-                            state.socket.BeginReceive(state.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), state);
                         }
                     }
 
@@ -283,8 +282,11 @@ namespace StratusGameServer
                     if (PlayerCount > 50)
                         break;
 
+
                     conn.uid = message.UID;
                     activeConnections.Add(conn);
+                    allClients.Add(message.UID, conn);
+                    clientMessageQues.Add(message.UID, new MessageList());
                     AssignClientToRoom(conn);
                     SendStateUpdate();
                     break;
@@ -302,8 +304,8 @@ namespace StratusGameServer
                     m.UID = conn.uid;
                     m.eventID = (int)NetworkEvent.GameStateUpdate;
                     m.SetData(new { states = room.clientStates });
-                    SendMessage(conn, m);
-
+                    SendMessageToClient(conn, m);
+                    Console.WriteLine($"Sent Room state to player {conn.uid}");
                     break;
                 case NetworkEvent.ObjectSpawn:
                     var r = GetRoom(conn.room);
@@ -312,12 +314,11 @@ namespace StratusGameServer
 
                     foreach (var item in r.clients)
                     {
-                        SendMessage(item, message);
+                        SendMessageToClient(item, message);
+                        Console.WriteLine($"Sending spawned obj to player {conn.uid}");
                     }
                     break;
             }
-
-            messageParsed.Set();
         }
 
         public static Room GetRoom(string uid) 
@@ -375,8 +376,6 @@ namespace StratusGameServer
 
         private static void SendCallback(IAsyncResult ar)
         {
-            sendDone.Set();
-
             try
             {
 
@@ -385,20 +384,244 @@ namespace StratusGameServer
                 Socket client = ((Connection)ar.AsyncState).socket;
                 // Complete sending the data to the remote device.  
                 int bytesSent = conn.socket.EndSend(ar);
-                //Console.WriteLine($"sent message {bytesSent} bytes");
-
-                //conn.incomingBuffer = new byte[1024];
-                //conn.bufferSize = 0;
-                //conn.totalBuffer.Clear();
-                //conn.socket.BeginReceive(conn.incomingBuffer, 0, 1024, 0, new AsyncCallback(ReadCallback), conn);
-
+                Console.WriteLine($"sent message {bytesSent} bytes");
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
             }
         }
-    
+
+
+        #region UDP
+        private static EndPoint epFrom = new IPEndPoint(IPAddress.Any, 0);
+        public static void SendMessageToClient(Connection conn,NetworkMessage m)
+        {
+            m.UID = uid;
+            clientMessageQues[conn.uid].AddMessageToQue(m,conn.uid);
+        }    
+        public static void UDPListener()
+        {
+            Connection c = new Connection();
+            c.udp_socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            c.udp_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.ReuseAddress, true);
+            c.udp_socket.Bind(new IPEndPoint(IPAddress.Any, 2729));
+            //c.udp_socket.Connect(epFrom);
+            EndPoint tempRemoteEP = (EndPoint)epFrom;
+
+            try
+            {
+                while (true)
+                {
+                    udpReceived.Reset();
+                    StateObject w = new StateObject();
+                    w.connection = c;
+                    Console.WriteLine("Waiting For UDP");
+                    w.connection.udp_socket.BeginReceiveFrom(w.buffer, 0, 1024, 0, ref tempRemoteEP, new AsyncCallback(Client_UDPReadCallback), w);
+                    udpReceived.WaitOne();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+        public static void Client_SendUDPMessage(NetworkMessage m, Connection c)
+        {
+            StateObject s = new StateObject();
+            s.connection = new Connection();
+            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            s.connection.udp_socket = socket;
+            s.connection.udp_socket.Connect(c.ip, 2729);
+            var packets = MessagePacket.Factory.PacketsFromMessage(m);
+            for (int i = 0; i < packets.Count; i++)
+            {
+                s.sendDone.Reset();
+                var buffer = packets[i].Serialize();
+                s.connection.udp_socket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, Client_SendUDPDone, s);
+                s.sendDone.WaitOne();
+            }
+            s.connection.udp_socket.Close();
+        }
+        public static void Client_SendUDPDone(IAsyncResult ar)
+        {
+            StateObject so = (StateObject)ar.AsyncState;
+            int bytes = so.connection.udp_socket.EndSend(ar);
+            so.sendDone.Set();
+            Console.WriteLine($"Sent UDP {bytes}");
+
+        }
+        private static void Client_UDPReadCallback(IAsyncResult ar)
+        {
+            Console.WriteLine("Got UDP");
+            StateObject so = (StateObject)ar.AsyncState;
+            Socket s = so.connection.udp_socket;
+            int read = s.EndReceiveFrom(ar, ref epFrom);
+            udpReceived.Set();
+            if (read > 0)
+            {
+                MessagePacket p = new MessagePacket();
+                p.Parse(so.buffer);
+
+                if (!so.connection.messageBuffers.ContainsKey(p.messageID))
+                    so.connection.messageBuffers.Add(p.messageID, new List<MessagePacket>());
+
+                so.connection.messageBuffers[p.messageID].Add(p);
+
+                //End Message
+                if (p.packetType == 0)
+                {
+                    so.connection.messageBuffers[p.messageID].Sort((x, z) => { return x.packetID.CompareTo(z.packetID); });
+                    List<byte> totalMessageBuffer = new List<byte>();
+                    foreach (var item in so.connection.messageBuffers[p.messageID])
+                    {
+                        totalMessageBuffer.AddRange(item.packetData);
+                    }
+
+                    NetworkMessage message = new NetworkMessage();
+                    BinaryFormatter bf = new BinaryFormatter();
+                    message = bf.Deserialize(new MemoryStream(totalMessageBuffer.ToArray())) as NetworkMessage;
+                    ParseNetworkMessage(message, so.connection);
+                }
+            }
+
+
+        }
+        #endregion
+
+        #region Client
+
+        public static void SendQuedMessage(MessageWrapper w,Connection c)
+        {
+            clientMessageQues[c.uid].isBusy = true;
+            c.socket.BeginSend(w.sizeBytes, 0, w.sizeBytes.Length, 0, new AsyncCallback(OnClientMessageHeaderSent), w);
+
+        }
+
+        public static void OnClientMessageHeaderSent(IAsyncResult ar)
+        {
+            var wrapper = ((MessageWrapper)ar.AsyncState);
+            var conn = allClients[wrapper.recipient];
+            conn.socket.EndSend(ar);
+            conn.socket.BeginSend(wrapper.buffer, 0, wrapper.buffer.Length, 0, new AsyncCallback(OnClientMessageSent), wrapper);
+        }
+
+        public static void OnClientMessageSent(IAsyncResult ar)
+        {
+            var wrapper = ((MessageWrapper)ar.AsyncState);
+            var conn = allClients[wrapper.recipient];
+            clientMessageQues[conn.uid].isBusy = false;          
+            conn.socket.EndSend(ar);
+        }
+        
+        private static void OnClientReadCallback(IAsyncResult ar)
+        {
+            MessageWrapper wrapper = (MessageWrapper)ar.AsyncState;
+
+            try
+            {
+                int bytesRead = wrapper.client.socket.EndReceive(ar);
+
+                if (bytesRead > 0)
+                {
+                    if (bytesRead == 4)
+                    {
+                        var foo = new List<byte>(wrapper.buffer);
+                        var bar = foo.GetRange(0, bytesRead).ToArray();
+                        wrapper.sizeBytes = bar;
+                        wrapper.bufferSize = BitConverter.ToInt32(bar, 0);
+                        wrapper.buffer = new byte[1024];
+                        wrapper.client.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(OnClientReadCallback), wrapper);
+                    }
+                    else
+                    {
+                        wrapper.AddToBuffer(wrapper.buffer, bytesRead);
+                        wrapper.buffer = new byte[1024];
+
+                        if (wrapper.totalBuffer.Length >= wrapper.bufferSize)
+                        {
+                            MessageWrapper w = new MessageWrapper();
+                            w.client = wrapper.client;
+                            w.client.socket.BeginReceive(w.buffer, 0, 1024, 0, new AsyncCallback(OnClientReadCallback), w);
+                            ParseClientNetworkMessage(wrapper);
+                        }
+                        else
+                        {
+                            wrapper.buffer = new byte[1024];
+                            wrapper.client.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(OnClientReadCallback), wrapper);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private static void ParseClientNetworkMessage(MessageWrapper w)
+        {
+
+            var message = w.GetMessage();
+
+            if (message == null)
+            {
+                Console.WriteLine("Ignoring null message");
+                return;
+            }
+
+            var conn = w.client;
+
+            switch ((NetworkEvent)message.eventID)
+            {
+                case NetworkEvent.ClientRegister:
+                    if (PlayerCount > 50)
+                        break;
+
+
+                    conn.uid = message.UID;
+                    activeConnections.Add(conn);
+                    allClients.Add(message.UID, conn);
+                    clientMessageQues.Add(message.UID, new MessageList());
+                    clientUDPMessageQues.Add(message.UID, new MessageList());
+
+                    AssignClientToRoom(conn);
+                    SendStateUpdate();
+                    break;
+                case NetworkEvent.ClientStateUpdate:
+                    var room = GetRoom(conn.room);
+                    if (room == null)
+                        break;
+
+                    if (room.clientStates.ContainsKey(message.GetDataProperty<string>("uid",NetworkMessage.PropType.String)))
+                        room.clientStates[message.GetDataProperty<string>("uid", NetworkMessage.PropType.String)] = message.GetDataProperty<string>("states",NetworkMessage.PropType.String);
+                    else
+                        room.clientStates.Add(message.GetDataProperty<string>("uid", NetworkMessage.PropType.String), message.GetDataProperty<string>("states", NetworkMessage.PropType.String));
+
+                    NetworkMessage m = new NetworkMessage();
+                    m.UID = conn.uid;
+                    m.eventID = (int)NetworkEvent.GameStateUpdate;
+                    m.data = room.GetSateData();
+                    Client_SendUDPMessage(m,conn);
+                    Console.WriteLine($"Sent Room state to player {conn.uid}");
+                    break;
+                case NetworkEvent.ObjectSpawn:
+                case NetworkEvent.PlayerSpawn:
+                    var r = GetRoom(conn.room);
+                    if (r == null)
+                        break;
+
+                    foreach (var item in r.clients)
+                    {
+                        SendMessageToClient(item, message);
+                        Console.WriteLine($"Sending spawned obj to player {item.uid}");
+                    }
+                    break;
+            }
+        }
+
+        #endregion
+
         public static void SendStateUpdate()
         {
             ServerReference s = new ServerReference();
@@ -427,29 +650,22 @@ namespace StratusGameServer
             var item = GetMatchMakingRoom();
             conn.room = item.uid;
             item.clients.Add(conn);
-            NetworkMessage m = new NetworkMessage();
-            m.UID = conn.uid;
-            m.eventID = (int)NetworkEvent.ServerAck;
-            m.SetData(new { states = item.clientStates,room = conn.room });
-            sendDone.Reset();
-            SendMessage(conn, m);
-            sendDone.WaitOne();
+            //NetworkMessage m = new NetworkMessage();
+            //m.UID = conn.uid;
+            //m.eventID = (int)NetworkEvent.ServerAck;
+            //m.SetData(new { states = item.clientStates,room = conn.room });
+            //SendMessageToClient(conn, m);
 
-            if (item.clients.Count == maxPlayersPerRoom)
+            item.isPlaying = true;
+            foreach (var c in item.clients)
             {
-                item.isPlaying = true;
-                foreach (var c in item.clients)
-                {
-                    sendDone.Reset();
-                    NetworkMessage ms = new NetworkMessage();
-                    ms.UID = conn.uid;
-                    ms.eventID = (int)NetworkEvent.GameStart;
-                    ms.SetData(new { level = "TestLevel", mode = "TestMode" });
-                    SendMessage(c, ms);
-                    sendDone.WaitOne();
-
-                }
+                NetworkMessage ms = new NetworkMessage();
+                ms.UID = conn.uid;
+                ms.eventID = (int)NetworkEvent.GameStart;
+                ms.SetData(new { level = "TestLevel", mode = "TestMode" });
+                SendMessageToClient(c, ms);
             }
+            
         }
     }
 }

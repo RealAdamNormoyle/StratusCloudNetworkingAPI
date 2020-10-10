@@ -16,6 +16,23 @@ namespace StratusCloudNetworking
         public bool syncPosition;
         public bool syncRotation;
 
+        Vector3 m_position;
+        Quaternion m_rotation;
+
+        public void LateUpdate()
+        {
+            if (isLocalObject)
+            {
+                m_position = transform.position;
+                m_rotation = transform.rotation;
+            }
+            else
+            {
+                transform.position = Vector3.Lerp(transform.position,m_position,Time.deltaTime);
+                transform.rotation = Quaternion.Lerp(transform.rotation, m_rotation, Time.deltaTime); ;
+            }
+        }
+
         public string CreateLocalObject(string name)
         {
             m_name = name;
@@ -31,24 +48,27 @@ namespace StratusCloudNetworking
             m_uid = s;
         }
 
-        public void SetData(string json)
+        public void SetData(ObjectData data)
         {
-            var data = SimpleJSON.JSON.Parse(json);
-            if (data["uid"] != uid)
+            if (isLocalObject)
                 return;
 
-            if (!string.IsNullOrEmpty(data["pos"]))
+
+            if (data.uid != uid)
+                return;
+
+            if (!string.IsNullOrEmpty(data.position))
             {
-                var p = data["pos"].ToString().Replace("(", "").Replace(")", "").Split(',');
+                var p = data.position.ToString().Replace("(", "").Replace(")", "").Split(',');
                 Vector3 pos = new Vector3(float.Parse(p[0]), float.Parse(p[1]), float.Parse(p[2]));
-                transform.position = pos;
+                m_position = pos;
             }
 
-            if (!string.IsNullOrEmpty(data["rot"]))
+            if (!string.IsNullOrEmpty(data.rotation))
             {
-                var r = data["rot"].ToString().Replace("(", "").Replace(")", "").Split(',');
+                var r = data.rotation.ToString().Replace("(", "").Replace(")", "").Split(',');
                 Quaternion rot = new Quaternion(float.Parse(r[0]), float.Parse(r[1]), float.Parse(r[2]), float.Parse(r[3]));
-                transform.rotation = rot;
+                m_rotation = rot;
             }
         }
 
@@ -56,17 +76,49 @@ namespace StratusCloudNetworking
         {
             string pos = "";
             string rot = "";
+            string json = "";
 
-            if (syncPosition)
-                pos = transform.position.ToString();
+            try
+            {
+                if (syncPosition)
+                    pos = m_position.ToString();
 
-            if (syncRotation)
-                rot = transform.rotation.ToString();
+                if (syncRotation)
+                    rot = m_rotation.ToString();
 
-            var data = new {name = m_name,uid = m_uid,pos,rot};
-            var json = JsonUtility.ToJson(data);
+                ObjectData data = new ObjectData();
+                data.name = m_name;
+                data.uid = m_uid;
+                data.position = pos;
+                data.rotation = rot;
+                json = data.ToJson();
+            }
+            catch (Exception e )
+            {
+                Debug.LogWarning(e);
+            }
+
             return json;
         }
 
+    }
+
+    [System.Serializable]
+    public class ObjectData
+    {
+        public string name;
+        public string uid;
+        public string position;
+        public string rotation;
+
+        public string ToJson()
+        {
+            return JsonMapper.ToJson(this);
+        }
+
+        public static ObjectData FromJson(string json)
+        {
+            return JsonUtility.FromJson<ObjectData>(json);
+        }
     }
 }

@@ -1,0 +1,11 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.exe
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.deps.json
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.runtimeconfig.json
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.runtimeconfig.dev.json
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\bin\Debug\netcoreapp3.0\UDPTest.pdb
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\obj\Debug\netcoreapp3.0\UDPTest.csprojAssemblyReference.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\obj\Debug\netcoreapp3.0\UDPTest.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\obj\Debug\netcoreapp3.0\UDPTest.AssemblyInfo.cs
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\obj\Debug\netcoreapp3.0\UDPTest.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\UDPTest\obj\Debug\netcoreapp3.0\UDPTest.pdb

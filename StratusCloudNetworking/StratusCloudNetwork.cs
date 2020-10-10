@@ -61,6 +61,11 @@ namespace StratusCloudNetworking
         public string level;
         public bool isPlaying;
         public Dictionary<string, string> clientStates = new Dictionary<string, string>();
+
+        public string GetSateData()
+        {
+            return JsonMapper.ToJson(clientStates);
+        }
     }
 
 }
