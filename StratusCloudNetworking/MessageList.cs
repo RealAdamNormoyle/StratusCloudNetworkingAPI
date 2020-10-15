@@ -55,10 +55,12 @@ namespace StratusCloudNetworking
             bufferSize = buffer.Length;
         }
 
-        public MessageWrapper(byte[] size) 
+        public MessageWrapper(byte[] buffer) 
         {
-            sizeBytes = size;
-            bufferSize = BitConverter.ToInt32(size,0);
+            totalBuffer = buffer;
+            bufferSize = buffer.Length;
+            BinaryFormatter bf = new BinaryFormatter();
+            message = bf.Deserialize(new MemoryStream(totalBuffer)) as NetworkMessage;
         }
 
         public MessageWrapper() { }

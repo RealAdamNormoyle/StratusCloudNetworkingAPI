@@ -1,7 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <ApplicationIcon />
+    <OutputType>Library</OutputType>
+    <StartupObject />
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -11,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Open.NAT" Version="2.1.0" />
     <PackageReference Include="SimpleJson" Version="0.38.0" />
     <PackageReference Include="System.Security.Permissions" Version="4.7.0-preview3.19551.4" />
   </ItemGroup>
@@ -22,7 +27,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(ProjectDir)output\netstandard2.0\StratusCloudNetworking.dll&quot; &quot;E:\PROJECTS\SovietSleeper\Assets\Plugins\&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(ProjectDir)output\netstandard2.1\StratusCloudNetworking.dll&quot; &quot;E:\PROJECTS\SovietSleeper\Assets\Plugins\&quot; /Y /I" />
   </Target>
 
 </Project>

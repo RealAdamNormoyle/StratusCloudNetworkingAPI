@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v3.0": {
       "TransportLayerTesting/1.0.0": {
         "dependencies": {
+          "Mono.Nat": "3.0.0",
           "StratusCloudNetworking": "1.0.0"
         },
         "runtime": {
@@ -34,11 +35,27 @@
           }
         }
       },
+      "Mono.Nat/3.0.0": {
+        "runtime": {
+          "lib/netstandard2.1/Mono.Nat.dll": {
+            "assemblyVersion": "3.0.0.0",
+            "fileVersion": "3.0.0.0"
+          }
+        }
+      },
       "Newtonsoft.Json/12.0.3": {
         "runtime": {
           "lib/netstandard2.0/Newtonsoft.Json.dll": {
             "assemblyVersion": "12.0.0.0",
             "fileVersion": "12.0.3.23909"
+          }
+        }
+      },
+      "Open.NAT/2.1.0": {
+        "runtime": {
+          "lib/net45/Open.Nat.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.1.0.0"
           }
         }
       },
@@ -145,6 +162,7 @@
       "StratusCloudNetworking/1.0.0": {
         "dependencies": {
           "Newtonsoft.Json": "12.0.3",
+          "Open.NAT": "2.1.0",
           "SimpleJson": "0.38.0",
           "System.Security.Permissions": "4.7.0-preview3.19551.4",
           "UnityEngine": "0.0.0.0"
@@ -183,12 +201,26 @@
       "path": "microsoft.win32.systemevents/4.7.0-preview3.19551.4",
       "hashPath": "microsoft.win32.systemevents.4.7.0-preview3.19551.4.nupkg.sha512"
     },
+    "Mono.Nat/3.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-LgRC8/8plJfvr1nCPmyHNIwP4fs346doMA/UVDZvFN0RfGJdyD2uS7Dl1AydxjVLrIvad8ghozI0vYFWcfPeYQ==",
+      "path": "mono.nat/3.0.0",
+      "hashPath": "mono.nat.3.0.0.nupkg.sha512"
+    },
     "Newtonsoft.Json/12.0.3": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-6mgjfnRB4jKMlzHSl+VD+oUc1IebOZabkbyWj2RiTgWwYPPuaK1H97G1sHqGwPlS5npiF5Q0OrxN1wni2n5QWg==",
       "path": "newtonsoft.json/12.0.3",
       "hashPath": "newtonsoft.json.12.0.3.nupkg.sha512"
+    },
+    "Open.NAT/2.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cFa5GY3a1LYpgyCkCfi4kY3XyArNNGjx36tQVfY9bQEXQBo8zx9rFKkDrDjOEupy31FPPH/mqLClddLNUl41hQ==",
+      "path": "open.nat/2.1.0",
+      "hashPath": "open.nat.2.1.0.nupkg.sha512"
     },
     "SimpleJson/0.38.0": {
       "type": "package",

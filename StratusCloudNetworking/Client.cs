@@ -41,20 +41,12 @@ namespace StratusCloudNetworking
         public Action<NetworkMessage> onReceivedMessage;
         public Action onDisconnect;
         public List<Action> pending = new List<Action>();
-        private static ManualResetEvent udpReceived = new ManualResetEvent(false);
+
+        public static TransportLayer TransportLayer = new TransportLayer();
 
         public void OnDestroy()
         {
-            DisconnectAll();
-        }
-
-        public void DisconnectAll()
-        {
-            m_serverConnection.socket.Close();
-            m_serverConnection.udp_socket.Close();
-            m_masterConnection.socket.Close();
-            messageSendLoop.Dispose();
-            clientUpdateTimer.Dispose();
+            TransportLayer.Dispose();
         }
 
         public void Update()
@@ -87,6 +79,50 @@ namespace StratusCloudNetworking
         {
             Instance = this;
             m_uid = Guid.NewGuid().ToString();
+
+            TransportLayer.onConnectedToRemote += OnConnectedToRemote;
+            TransportLayer.onReceivedMessage += OnReceivedMessage;
+            TransportLayer.onSentTCPToRemote += OnSentTCPToRemote;
+            TransportLayer.onSentUDPToRemote += OnSentUDPToRemote;
+            TransportLayer.onRemoteConnected += OnRemoteConnected;
+            TransportConfig c = new TransportConfig()
+            {
+                gameClient = true,
+                masterInPort = 2727,
+                masterOutPort = 2727,
+                tcpInPort = 2728,
+                tcpOutPort = 2728,
+                udpInPort = 2729,
+                udpOutPort = 2729,
+            };
+
+            TransportLayer.Initialize(c);
+        }
+
+        private void OnRemoteConnected(IPEndPoint endPoint)
+        {
+
+        }
+
+        private  void OnSentUDPToRemote(IPEndPoint endPoint)
+        {
+
+        }
+
+        private  void OnSentTCPToRemote(IPEndPoint endPoint)
+        {
+
+        }
+
+        private  void OnReceivedMessage(IPEndPoint endPoint, MessageWrapper message)
+        {
+            Debug.Log($"Incoming Message from {endPoint} | {message.message.data}");
+            ParseNetworkMessage(message.message, endPoint);
+        }
+
+        private  void OnConnectedToRemote(IPEndPoint endPoint)
+        {
+
         }
 
 
@@ -99,104 +135,23 @@ namespace StratusCloudNetworking
             IPHostEntry ipHostInfo = Dns.GetHostEntry(masterIP);
             IPAddress ipAddress = ipHostInfo.AddressList[0];
             IPEndPoint remoteEP = new IPEndPoint(ipAddress, 2727);
-            Instance.m_masterConnection.socket = new Socket(ipAddress.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
-            Instance.m_masterConnection.socket.BeginConnect(remoteEP,
-                new AsyncCallback(MasterConnectCallback), Instance.m_masterConnection);
+            Instance.m_masterConnection.endPoint = remoteEP;
+            TransportLayer.ConnectTo(remoteEP, OnConnectedToMaster);
         }
 
-        private void MasterConnectCallback(IAsyncResult ar)
+        private void OnConnectedToMaster()
         {
-            try
-            {
-                // Complete the connection.  
-                Instance.m_masterConnection.socket.EndConnect(ar);
-                m_connectedToMaster = true;
-                Debug.Log("Connected to master server");
+            m_connectedToMaster = true;
+            Debug.Log("Connected to master server");
 
-                MessageWrapper wrapper = new MessageWrapper();
-                Instance.m_masterConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Master_ReadCallback), wrapper);
-
-                if (onConnectedToMaster != null)
-                    Invoke(onConnectedToMaster);
-            }
-            catch (Exception e)
-            {
-                m_connectedToMaster = false;
-                Debug.Log($"There was an error connecting to the master server : {e}");
-            }
+            if (onConnectedToMaster != null)
+                Invoke(onConnectedToMaster);
         }
 
         public void Master_SendMessage(NetworkMessage m)
         {
-            MessageWrapper wrapper = new MessageWrapper(m);
-            Instance.m_masterConnection.socket.BeginSend(wrapper.sizeBytes, 0, wrapper.sizeBytes.Length, 0, new AsyncCallback(Master_OnSendMessageHeader), wrapper);
-        }
-
-        public void Master_OnSendMessageHeader(IAsyncResult ar)
-        {
-            var wrapper = ((MessageWrapper)ar.AsyncState);
-            Instance.m_masterConnection.socket.EndSend(ar);
-            Debug.Log($"send to Master { wrapper.bufferSize} bytes");
-            Instance.m_masterConnection.socket.BeginSend(wrapper.buffer, 0, wrapper.bufferSize, 0, new AsyncCallback(Master_SendCallback), wrapper);
-        }
-
-        public void Master_SendCallback(IAsyncResult ar)
-        {
-            var wrapper = ((MessageWrapper)ar.AsyncState);
-            int bytesSent = Instance.m_masterConnection.socket.EndSend(ar);
-            Debug.Log($"Finished Sending to Master {bytesSent} Bytes");
-        }
-
-        public void Master_ReadCallback(IAsyncResult ar)
-        {
-            MessageWrapper wrapper = (MessageWrapper)ar.AsyncState;
-
-            try
-            {
-                int bytesRead = Instance.m_masterConnection.socket.EndReceive(ar);
-
-                if (bytesRead > 0)
-                {
-
-                    if (bytesRead == 4)
-                    {
-                        //This is a message header
-                        var foo = new List<byte>(wrapper.buffer);
-                        var bar = foo.GetRange(0, bytesRead).ToArray();
-                        wrapper.sizeBytes = bar;
-                        wrapper.bufferSize = BitConverter.ToInt32(bar, 0);
-                        wrapper.buffer = new byte[1024];
-                        Instance.m_masterConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Master_ReadCallback), wrapper);
-
-                    }
-                    else
-                    {
-                        wrapper.AddToBuffer(wrapper.buffer, bytesRead);
-                        wrapper.buffer = new byte[1024];
-
-                        if (wrapper.totalBuffer.Length >= wrapper.bufferSize)
-                        {
-                            MessageWrapper w = new MessageWrapper();
-                            Instance.m_masterConnection.socket.BeginReceive(w.buffer, 0, 1024, 0, new AsyncCallback(Master_ReadCallback), w);
-                            ParseNetworkMessage(wrapper);
-                        }
-                        else
-                        {
-                            wrapper.buffer = new byte[1024];
-                            Instance.m_masterConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Master_ReadCallback), wrapper);
-                        }
-
-                    }
-                }
-
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);
-                MessageWrapper w = new MessageWrapper();
-                Instance.m_masterConnection.socket.BeginReceive(w.buffer, 0, 1024, 0, new AsyncCallback(Master_ReadCallback), w);
-
-            }
+            TransportLayer.SendTCP(m, Instance.m_masterConnection.endPoint);
+            Debug.Log($"Finished Sending to Master");
         }
 
         #endregion
@@ -209,27 +164,21 @@ namespace StratusCloudNetworking
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(ip), 2728);
             Instance.m_serverConnection = new Connection();
             Instance.m_serverConnection.ip = ip;
-            Instance.m_serverConnection.socket = new Socket(remoteEP.Address.AddressFamily, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
-            Instance.m_serverConnection.socket.BeginConnect(remoteEP, new AsyncCallback(ServerConnectCallback), Instance.m_serverConnection);
+            Instance.m_serverConnection.endPoint = remoteEP;
+            TransportLayer.ConnectTo(remoteEP, ServerConnectCallback);
         }
-        private void ServerConnectCallback(IAsyncResult ar)
+        private void ServerConnectCallback()
         {
             try
             {
-                Instance.m_serverConnection.socket.EndConnect(ar);
-
-                clientUpdateTimer = new Timer(OnStateUpdateTimer, null, 200, 200);
-                messageSendLoop = new Timer(OnMessageSendLoop, null, 100, 100);
-
-                MessageWrapper wrapper = new MessageWrapper();
-                Instance.m_serverConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Server_ReadCallback), wrapper);
-                Debug.Log($"connected to server");
+                TransportLayer.StartUDPListener(m_serverConnection.ip);
+                clientUpdateTimer = new Timer(OnStateUpdateTimer,null ,50, 50);
                 NetworkMessage msg = new NetworkMessage();
                 msg.eventID = (int)NetworkEvent.ClientRegister;
                 msg.SetData(new { uid = m_uid });
                 msg.UID = m_uid;
                 
-                Server_SendMessage(msg);
+                Server_SendMessage(msg,false);
                 if (onConnectedToServer != null)
                     Invoke(onConnectedToServer);
 
@@ -240,214 +189,16 @@ namespace StratusCloudNetworking
             }
         }
 
-        private void OnMessageSendLoop(object state)
+        public static void Server_SendMessage(NetworkMessage msg,bool udp = true)
         {
-            if (!sendMessageList.isBusy)
-            {
-                var message = sendMessageList.GetNextMessage();
-                if (message != null)
-                {
-                    SendQuedMessage(message, Instance.m_serverConnection);
-                }
-            }
-            else
-            {
-                Debug.LogWarning("Message List Busy!");
-            }
-            
-        }
-
-        public static void Server_SendMessage(NetworkMessage msg)
-        {
+            Debug.Log($"Server_SendMessage {msg.data}");
             msg.UID = m_uid;
-            int i = sendMessageList.AddMessageToQue(msg, "SERVER");
-        }
+            IPEndPoint remoteEP = new IPEndPoint(Instance.m_serverConnection.endPoint.Address, (udp)? TransportLayer.Config.udpOutPort: Instance.m_serverConnection.endPoint.Port);
+            if(udp)
+                TransportLayer.SendUDP(msg, remoteEP);
+            else
+                TransportLayer.SendTCP(msg, remoteEP);
 
-        private void Server_OnSendMessageHeader(IAsyncResult ar)
-        {
-            var wrapper = ((MessageWrapper)ar.AsyncState);
-            Instance.m_serverConnection.socket.EndSend(ar);
-            Instance.m_serverConnection.socket.BeginSend(wrapper.buffer, 0, wrapper.bufferSize, 0, new AsyncCallback(Server_SendCallback), wrapper);
-        }
-
-        private void Server_SendCallback(IAsyncResult ar)
-        {
-            try
-            {
-                var wrapper = ((MessageWrapper)ar.AsyncState);
-                int bytesSent = Instance.m_serverConnection.socket.EndSend(ar);
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);
-            }
-            sendMessageList.isBusy = false;
-        }
-
-        private void Server_ReadCallback(IAsyncResult ar)
-        {
-            MessageWrapper wrapper = (MessageWrapper)ar.AsyncState;
-            
-            try
-            {
-                int bytesRead = Instance.m_serverConnection.socket.EndReceive(ar);
-                if (bytesRead > 0)
-                {
-                    if (bytesRead == 4)
-                    {
-                        //This is a message header
-                        var foo = new List<byte>(wrapper.buffer);
-                        var bar = foo.GetRange(0, bytesRead).ToArray();
-                        wrapper.sizeBytes = bar;
-                        wrapper.bufferSize = BitConverter.ToInt32(bar, 0);
-                        wrapper.buffer = new byte[1024];
-                        Instance.m_serverConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Server_ReadCallback), wrapper);
-                    }
-                    else
-                    {
-                        wrapper.AddToBuffer(wrapper.buffer, bytesRead);
-                        wrapper.buffer = new byte[1024];
-
-                        if (wrapper.totalBuffer.Length >= wrapper.bufferSize)
-                        {
-                            MessageWrapper w = new MessageWrapper();
-                            Instance.m_serverConnection.socket.BeginReceive(w.buffer, 0, 1024, 0, new AsyncCallback(Server_ReadCallback), w);
-                            ParseNetworkMessage(wrapper);
-                        }
-                        else
-                        {
-                            wrapper.buffer = new byte[1024];
-                            Instance.m_serverConnection.socket.BeginReceive(wrapper.buffer, 0, 1024, 0, new AsyncCallback(Server_ReadCallback), wrapper);
-                        }
-                    }
-                }
-
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);
-            }
-        }
-
-        #region UDP
-
-        private EndPoint epFrom = new IPEndPoint(IPAddress.Any, 0);
-        public void UDPListener()
-        {
-            try
-            {
-                var s = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
-                EndPoint tempRemoteEP = (EndPoint)epFrom;
-                IPAddress hostIP = IPAddress.Parse(new System.Net.WebClient().DownloadString("https://api.ipify.org").Trim());
-                IPEndPoint ep = new IPEndPoint(IPAddress.Any, 2729);
-                s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.ReuseAddress, true);         
-                s.Bind(ep);
-
-                while (true)
-                {
-                    udpReceived.Reset();
-                    StateObject w = new StateObject();
-                    w.connection = new Connection();
-                    w.connection.udp_socket = s;
-                    Debug.Log("Waiting For UDP");
-                    w.connection.udp_socket.BeginReceiveFrom(w.buffer, 0, 1024, 0, ref tempRemoteEP, new AsyncCallback(Server_OnUDPReadCallback), w);
-                    udpReceived.WaitOne();
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);
-            }
-        }
-
-        public void Server_OnUDPReadCallback(IAsyncResult ar)
-        {
-            StateObject so = (StateObject)ar.AsyncState;
-            Socket s = so.connection.udp_socket;
-            int read = s.EndReceiveFrom(ar, ref epFrom);
-            Debug.Log("Finished Getting UDP");
-
-            if (read > 0)
-            {
-                MessagePacket p = new MessagePacket();
-                p.Parse(so.buffer);
-
-                if (Instance.m_serverConnection.messageBuffers.ContainsKey(p.messageID))
-                    Instance.m_serverConnection.messageBuffers.Add(p.messageID, new List<MessagePacket>());
-
-                Instance.m_serverConnection.messageBuffers[p.messageID].Add(p);
-
-                //End Message
-                if(p.packetType == 0)
-                {
-                    Instance.m_serverConnection.messageBuffers[p.messageID].Sort((x, z) => { return x.packetID.CompareTo(z.packetID); });
-                    List<byte> totalMessageBuffer = new List<byte>();
-                    foreach (var item in Instance.m_serverConnection.messageBuffers[p.messageID])
-                    {
-                        totalMessageBuffer.AddRange(item.packetData);
-                    }
-
-                    NetworkMessage message = new NetworkMessage();
-                    BinaryFormatter bf = new BinaryFormatter();
-                    message = bf.Deserialize(new MemoryStream(totalMessageBuffer.ToArray())) as NetworkMessage;
-                    MessageWrapper w = new MessageWrapper();
-                    ParseNetworkMessage(w);
-                }
-            }
-        }
-
-        public void Server_SendUDPMessage(NetworkMessage m,Connection c)
-        {
-            try
-            {
-                Debug.Log($"Server_SendUDPMessage");
-
-                StateObject s = new StateObject();
-                s.connection = new Connection();
-                Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.Connect(Instance.m_serverConnection.ip, 2729);
-                Debug.Log($"Server_SendUDPMessage CONNECTED");
-
-                s.connection.udp_socket = socket;
-                var packets = MessagePacket.Factory.PacketsFromMessage(m);
-                for (int i = 0; i < packets.Count; i++)
-                {
-                    s.sendDone.Reset();
-                    var buffer = packets[i].Serialize();
-                    s.connection.udp_socket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, Server_SendUDPDone, s);
-                    s.sendDone.WaitOne();
-                }
-                s.connection.udp_socket.Close();
-                Debug.Log($"Server_SendUDPMessage DONE");
-
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);           
-            }
-        }
-
-        public void Server_SendUDPDone(IAsyncResult ar)
-        {
-            StateObject so = (StateObject)ar.AsyncState;
-            try
-            {
-                int bytes = so.connection.udp_socket.EndSend(ar);
-                Debug.Log($"Finished Sending UDP {bytes}");
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e);
-            }
-            so.sendDone.Set();
-        }
-
-        #endregion
-
-        public void SendQuedMessage(MessageWrapper w, Connection c)
-        {
-            sendMessageList.isBusy = true;
-            c.socket.BeginSend(w.sizeBytes, 0, w.sizeBytes.Length, 0, new AsyncCallback(Server_OnSendMessageHeader), w);
         }
 
         #endregion
@@ -482,18 +233,16 @@ namespace StratusCloudNetworking
             Master_SendMessage(msg);
         }
 
-        private void ParseNetworkMessage(MessageWrapper w)
+        private void ParseNetworkMessage(NetworkMessage message,IPEndPoint endPoint)
         {
-
-            var message = w.GetMessage(); 
-
-            if(message == null)
+            if(message == null || message.UID == m_uid)
             {
-                Debug.Log("Message is null");
+                Debug.Log($"Ignoring Message {message.UID}");
                 return;
             }
 
-            switch ((NetworkEvent)w.message.eventID)
+            Debug.Log($"ParseNetworkMessage {message.eventID} {message.data}");
+            switch ((NetworkEvent)message.eventID)
             {
                 case NetworkEvent.MasterMatchResponse:
                     ConnectToServer(message.GetDataProperty<string>("ip", NetworkMessage.PropType.String).Replace("\\", "").Replace("\"", ""));
@@ -503,18 +252,17 @@ namespace StratusCloudNetworking
                     break;
                 case NetworkEvent.ObjectSpawn:
                 case NetworkEvent.PlayerSpawn:
+                    string name = message.GetDataProperty<string>("name", NetworkMessage.PropType.String).Replace("\"", "");
+                    string id = message.GetDataProperty<string>("uid", NetworkMessage.PropType.String).Replace("\"", "");
+                    Debug.Log($"PlayerSpawn {message.data}");
                     Debug.Log("ObjectSpawn");
-                    string name = message.GetDataProperty<string>("name", NetworkMessage.PropType.String);
-                    string id = message.GetDataProperty<string>("uid", NetworkMessage.PropType.String);
-
                     Instance.Invoke(() =>
                     {
                         SpawnRemoteObject(name, id);
                     });
-
                     break;
                 case NetworkEvent.GameStateUpdate:
-                    RemoteGameStateUpdate(message.data);
+                    RemoteGameStateUpdate(message.data);                 
                     break;
                 case NetworkEvent.GameStart:
                     Debug.Log("Game Started");
@@ -531,93 +279,97 @@ namespace StratusCloudNetworking
 
         }
 
-        private void OnStateUpdateTimer(object state)
+        private void OnStateUpdateTimer(object st)
         {
+            Debug.Log("OnStateUpdateTimer");
             NetworkMessage msg = new NetworkMessage();
             msg.eventID = (int)NetworkEvent.ClientStateUpdate;
-            Dictionary<string, string> s = new Dictionary<string, string>();
+            ClientState state = new ClientState();
+            state.clientUID = m_uid;
+            state.time = DateTime.Now.ToString();
+            List<ObjectData> d = new List<ObjectData>();
             foreach (var item in spawnedObjects)
             {
                 if (item.Value.isLocalObject)
                 {
-                    s.Add(item.Value.uid, item.Value.GetData());
+                    var da = item.Value.GetData();
+                    d.Add(da);
                 }
             }
+            state.objectJsonData = d.ToArray();
+            var json = JsonUtility.ToJson(state);
+            Debug.Log(json);
 
-            msg.SetData(new { uid = m_uid, states = s});
+            msg.SetData(json);
             msg.UID = m_uid;
-            Server_SendUDPMessage(msg, Instance.m_serverConnection);
+            Server_SendMessage(msg);
+        }
+
+        void ParseClientState(SimpleJSON.JSONNode item)
+        {
+            if (item["clientUID"] == m_uid)
+                return;
+
+
+            if (item["objectJsonData"] != null)
+            {
+                Debug.Log($"RemoteGameStateUpdate : {item["objectJsonData"]}");
+
+                foreach (var objj in item["objectJsonData"].AsArray)
+                {
+                    var objData = objj.Value;
+                    Debug.Log($"RemoteGameStateUpdate : {objData}");
+                    ObjectData obj = ObjectData.FromJson(objData.AsObject);
+
+                    if (spawnedObjects.ContainsKey(obj.uid))
+                    {
+                        spawnedObjects[obj.uid].SetData(obj);
+                    }
+                    else
+                    {
+                        Instance.Invoke(() =>
+                        {
+                            SpawnRemoteObject(obj.name, obj.uid)?.SetData(obj);
+                        });
+
+                    }
+
+                }
+            }
         }
 
         void RemoteGameStateUpdate(string data)
         {
+            if (string.IsNullOrEmpty(data))
+                return;
+            //data = "{states :" + data + "}";
             Debug.Log($"RemoteGameStateUpdate : {data}");
-            var states = JsonMapper.ToObject<Dictionary<string, string>>(data);
+
+            //data = data.Replace("\\", "");
+            var states = SimpleJSON.JSON.Parse(data);
+
             if (states == null)
                 return;
 
-            Debug.Log($"RemoteGameStateUpdate : States {states.Count}");
-
-            foreach (var item in states)
+            if (states.IsArray)
             {
-
-                var st = JsonMapper.ToObject<Dictionary<string, string>>(item.Value);
-                Debug.Log($"RemoteGameStateUpdate : Objects {st.Count}");
-
-                foreach (var i in st)
+                foreach (var i in states.AsArray)
                 {
-                    var objData = JsonMapper.ToObject<ObjectData>(i.Value);
-                    Debug.Log($"RemoteGameStateUpdate : Object {objData}");
-
-                    if (spawnedObjects.ContainsKey(i.Key))
-                    {
-                        spawnedObjects[i.Key].SetData(objData);
-                    }
-                    else
-                    {
-                        Debug.Log($"RemoteGameStateUpdate : Spawning {i.Key}");
-
-                        Instance.Invoke(() =>
-                        {
-                            SpawnRemoteObject(objData.name, objData.uid);
-                            spawnedObjects[i.Key].SetData(objData);
-                        });
-
-                    }
+                    var item = i.Value;
+                    ParseClientState(item);
                 }
+            }
+            else
+            {
+                ParseClientState(states);
             }
         }
 
         #region Objects
 
         public Dictionary<string, GameObject> registeredPrefabs = new Dictionary<string, GameObject>();
-        public Dictionary<string, NetworkObject> spawnedObjects = new Dictionary<string, NetworkObject>();
+        public static Dictionary<string, NetworkObject> spawnedObjects = new Dictionary<string, NetworkObject>();
 
-        public List<string> GetLocalObjectData()
-        {
-            var s = new List<string>();
-            foreach (var item in spawnedObjects)
-            {
-                if (item.Value.isLocalObject)
-                {
-                    s.Add(item.Value.GetData());
-                }
-            }
-
-            return s;
-        }
-
-        public void SetRemoteObjectData(List<string> s)
-        {
-            foreach (var item in s)
-            {
-                var objData = ObjectData.FromJson(item);
-                if (!spawnedObjects[objData.uid].isLocalObject)
-                {
-                    spawnedObjects[objData.uid].SetData(objData);
-                }
-            }
-        }
 
         public void RegisterNetworkPrefab(GameObject obj,string name)
         {
@@ -630,7 +382,7 @@ namespace StratusCloudNetworking
             registeredPrefabs.Add(name, obj);
         }
 
-        public void SpawnRemoteObject(string name, string uid)
+        public NetworkObject SpawnRemoteObject(string name, string uid)
         {
             name = name.Replace('\"',' ');
             name = name.Trim();
@@ -655,7 +407,10 @@ namespace StratusCloudNetworking
 
                 ngobj.SetRemoteObject(uid,name);
                 spawnedObjects.Add(uid, ngobj);
+                return ngobj;
             }
+
+            return null;
         }
 
         public void SpawnLocalPlayer(Action<GameObject> callback)
@@ -669,13 +424,13 @@ namespace StratusCloudNetworking
             string objUid = ngobj.CreateLocalObject("PLAYER");
             Debug.Log($"[Network] Requested local object spawn (PLAYER,{objUid})");
             spawnedObjects.Add(objUid, ngobj);
-            callback.Invoke(gobj);
 
             var msg = new NetworkMessage();
             msg.UID = m_uid;
             msg.eventID = (int)NetworkEvent.PlayerSpawn;
             msg.SetData(new { name = "PLAYER", uid = objUid });
-            Server_SendMessage(msg);
+            Server_SendMessage(msg,false);
+            callback.Invoke(gobj);
         }
 
         public void SpawnNetworkObject(string obj, Action<GameObject> callback)
@@ -699,7 +454,7 @@ namespace StratusCloudNetworking
             msg.UID = m_uid;
             msg.eventID = (int)NetworkEvent.ObjectSpawn;
             msg.SetData(new {name = obj,uid = objUid });
-            Server_SendMessage(msg);
+            Server_SendMessage(msg,false);
             
         }
 

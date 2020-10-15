@@ -86,8 +86,10 @@
                     Console.WriteLine("Local Host not found"); // fail
                     return;
                 }
+
                 IPEndPoint localIpEndPoint = new IPEndPoint(localHostEntry.AddressList[0], sampleUdpPort);
                 soUdp.Bind(localIpEndPoint);
+
                 while (true)
                 {
                     Byte[] received = new Byte[256];

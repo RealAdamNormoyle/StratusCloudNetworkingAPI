@@ -1,0 +1,2 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusGameServer\obj\Debug\netcoreapp3\StratusGameServer.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusGameServer\obj\Debug\netcoreapp3\StratusGameServer.AssemblyInfo.cs

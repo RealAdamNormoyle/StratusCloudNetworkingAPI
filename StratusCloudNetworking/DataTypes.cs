@@ -7,18 +7,69 @@ using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
+using UnityEngine;
 
 namespace StratusCloudNetworking
 {
-
-
-    public class StateObject
+    [System.Serializable]
+    public class V3
     {
-        public ManualResetEvent sendDone = new ManualResetEvent(false);
-        public Connection connection;
-        public byte[] buffer = new byte[1024];
+        public float x;
+        public float y;
+        public float z;
 
+        public V3(float X,float Y,float Z)
+        {
+            x = X;
+            y = Y;
+            z = Z;
+        }
+
+        public V3(Vector3 vector)
+        {
+            x = vector.x;
+            y = vector.y;
+            z = vector.z;
+        }
+
+        public Vector3 ToVector3()
+        {
+            return new Vector3(x,y,z);
+        }
     }
+
+    [System.Serializable]
+    public class V4
+    {
+        public float x;
+        public float y;
+        public float z;
+        public float w;
+
+        public V4(float X, float Y, float Z, float W)
+        {
+            x = X;
+            y = Y;
+            z = Z;
+            w = W;
+
+        }
+
+        public V4(Quaternion vector)
+        {
+            x = vector.x;
+            y = vector.y;
+            z = vector.z;
+            w = vector.w;
+
+        }
+
+        public Quaternion ToQuaternion()
+        {
+            return new Quaternion(x, y, z,w);
+        }
+    }
+
 
     [System.Serializable]
     public class MessagePacket
@@ -29,22 +80,39 @@ namespace StratusCloudNetworking
         public byte packetType;
         public byte[] packetData;
 
-        public void Parse(byte[] data)
+        public bool Parse(byte[] data)
         {
+            if (data.Length < 10)
+                return false;
+
             messageID = BitConverter.ToInt32(data, 0);
             packetID = BitConverter.ToInt32(data, 4);
             dataSize = BitConverter.ToInt32(data, 8);
+            Console.WriteLine($"Parsing Packet [{data.Length}]: {(data.Length - 13)} {dataSize}");
+
             packetType = data[12];
+            packetData = new byte[0];
+            if ((data.Length - 13) < dataSize)
+                return false;
+
             var l = new List<byte>(data);
             packetData = l.GetRange(13,dataSize).ToArray();
+            Console.WriteLine($"Parsing Packet [{data.Length}]: {messageID} {packetID} {dataSize} , {packetData.Length}");
+            return true;
         }
 
         public byte[] Serialize()
         {
-            BinaryFormatter bf = new BinaryFormatter();
-            MemoryStream st = new MemoryStream();
-            bf.Serialize(st, this);
-            return st.GetBuffer();
+            var l = new List<byte>();
+            dataSize = packetData.Length;
+            l.AddRange(BitConverter.GetBytes(messageID));
+            l.AddRange(BitConverter.GetBytes(packetID));
+            l.AddRange(BitConverter.GetBytes(dataSize));
+            l.Add(packetType);
+            l.AddRange(packetData);
+            Console.WriteLine($"Packing Packet [{l.Count}]: {messageID} {packetID} {dataSize} , {packetData.Length}");
+
+            return l.ToArray();
         }
 
         public class Factory
@@ -85,8 +153,20 @@ namespace StratusCloudNetworking
                     data.AddRange(item.packetData);
                 }
 
-                BinaryFormatter bf = new BinaryFormatter();
-                m = bf.Deserialize(new MemoryStream(data.ToArray())) as NetworkMessage;
+                try
+                {
+                    if (data.Count > 0)
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        m = bf.Deserialize(new MemoryStream(data.ToArray())) as NetworkMessage;
+                    }
+
+                }
+                catch (Exception)
+                {
+
+                    Console.WriteLine("FAILED parsing netwokrMessage");
+                }
 
                 return m;
             }
@@ -94,15 +174,38 @@ namespace StratusCloudNetworking
         }
     }
 
-
-
     [System.Serializable]
     public class ClientState
     {
-        public int clientUID;
+        public string clientUID;
         public string time;
-        public List<string> objectsJsonData = new List<string>();
+        public ObjectData[] objectJsonData;
 
+        public static ClientState FromJson(string json)
+        {
+            //JsonMapper.ToObject<ClientState>(json);
+
+            ClientState n = new ClientState();
+            var d = SimpleJSON.JSON.Parse(json);
+            n.clientUID = d["clientUID"];
+            n.time = d["time"];
+            List<ObjectData> datas = new List<ObjectData>();
+
+            if (d["objectJsonData"].AsArray != null)
+            {
+                Console.WriteLine("HAS OBJECT DATA");
+
+                foreach (var objj in d["objectJsonData"].AsArray)
+                {
+                    var objData = objj.Value;
+                    Console.WriteLine(objData.Value.ToString());
+                    ObjectData obj = ObjectData.FromJson(objData.AsObject);
+                    datas.Add(obj);
+                }
+            }
+            n.objectJsonData = datas.ToArray();
+            return n;
+        }
     }
 
     [System.Serializable]
@@ -117,21 +220,11 @@ namespace StratusCloudNetworking
     [Serializable]
     public class Connection
     {
-        public Socket socket;
-        public Socket udp_socket;
-        public Dictionary<int, List<MessagePacket>> messageBuffers = new Dictionary<int, List<MessagePacket>>();
-        public IPAddress address { get { return ((IPEndPoint)(socket.RemoteEndPoint)).Address; } }
-        public string ip;
         public string uid;
-        public bool isServer;
-        public int totalPlayers;
-        public ServerState serverState;
+        public string ip;
+        public IPEndPoint endPoint;
+        public Dictionary<int, List<MessagePacket>> messageBuffers = new Dictionary<int, List<MessagePacket>>();
         public DateTime lastActive;
-        public List<byte> totalBuffer = new List<byte>();
-        public byte[] incomingBuffer = new byte[1024];
-        public byte[] outgoingBuffer = new byte[1024];
-        public int bufferSize;
-        public int maxPlayers;
         public ServerReference serverReference;
         public string room;
         public bool isHostedRoom;
@@ -167,6 +260,11 @@ namespace StratusCloudNetworking
         public void SetData(object obj)
         {
             data = JsonConvert.SerializeObject(obj);
+        }
+
+        public void SetData(string obj)
+        {
+            data = obj;
         }
 
         public enum PropType

@@ -446,11 +446,21 @@ using System.IO;
 
             return data.inst_string;
         }
-        #endregion
+
+        public static explicit operator Dictionary<string, JsonData>(JsonData data)
+        {
+            if (data.type != JsonType.Object)
+                throw new InvalidCastException(
+                    "Instance of JsonData doesn't hold an object");
+
+            return (Dictionary<string, JsonData>)data.inst_object;
+        }
+
+    #endregion
 
 
-        #region ICollection Methods
-        void ICollection.CopyTo (Array array, int index)
+    #region ICollection Methods
+    void ICollection.CopyTo (Array array, int index)
         {
             EnsureCollection ().CopyTo (array, index);
         }

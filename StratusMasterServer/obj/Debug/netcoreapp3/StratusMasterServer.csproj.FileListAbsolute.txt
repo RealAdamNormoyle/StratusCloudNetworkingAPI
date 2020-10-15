@@ -1,0 +1,3 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp3\StratusMasterServer.csprojAssemblyReference.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp3\StratusMasterServer.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusMasterServer\obj\Debug\netcoreapp3\StratusMasterServer.AssemblyInfo.cs

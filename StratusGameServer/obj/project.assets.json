@@ -38,6 +38,15 @@
           "lib/netstandard2.0/Newtonsoft.Json.dll": {}
         }
       },
+      "Open.NAT/2.1.0": {
+        "type": "package",
+        "compile": {
+          "lib/net45/Open.Nat.dll": {}
+        },
+        "runtime": {
+          "lib/net45/Open.Nat.dll": {}
+        }
+      },
       "SimpleJson/0.38.0": {
         "type": "package"
       },
@@ -135,9 +144,10 @@
       },
       "StratusCloudNetworking/1.0.0": {
         "type": "project",
-        "framework": ".NETStandard,Version=v2.0",
+        "framework": ".NETStandard,Version=v2.1",
         "dependencies": {
           "Newtonsoft.Json": "12.0.3",
+          "Open.NAT": "2.1.0",
           "SimpleJson": "0.38.0",
           "System.Security.Permissions": "4.7.0-preview3.19551.4"
         },
@@ -226,6 +236,23 @@
         "newtonsoft.json.12.0.3.nupkg.sha512",
         "newtonsoft.json.nuspec",
         "packageIcon.png"
+      ]
+    },
+    "Open.NAT/2.1.0": {
+      "sha512": "cFa5GY3a1LYpgyCkCfi4kY3XyArNNGjx36tQVfY9bQEXQBo8zx9rFKkDrDjOEupy31FPPH/mqLClddLNUl41hQ==",
+      "type": "package",
+      "path": "open.nat/2.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net35/Open.Nat.XML",
+        "lib/net35/Open.Nat.dll",
+        "lib/net35/System.Threading.dll",
+        "lib/net35/System.Threading.xml",
+        "lib/net45/Open.Nat.XML",
+        "lib/net45/Open.Nat.dll",
+        "open.nat.2.1.0.nupkg.sha512",
+        "open.nat.nuspec"
       ]
     },
     "SimpleJson/0.38.0": {
@@ -511,5 +538,17 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.0.100\\RuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'Open.NAT 2.1.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8' instead of the project target framework '.NETCoreApp,Version=v3.0'. This package may not be fully compatible with your project.",
+      "libraryId": "Open.NAT",
+      "targetGraphs": [
+        ".NETCoreApp,Version=v3.0"
+      ]
+    }
+  ]
 }

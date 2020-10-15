@@ -5,6 +5,7 @@ C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\D
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\TransportLayerTesting.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\TransportLayerTesting.pdb
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\Microsoft.Win32.SystemEvents.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\Mono.Nat.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\Newtonsoft.Json.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\System.Drawing.Common.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\System.Security.AccessControl.dll
@@ -28,3 +29,4 @@ C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\D
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3.0\TransportLayerTesting.csproj.CopyComplete
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3.0\TransportLayerTesting.dll
 C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3.0\TransportLayerTesting.pdb
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\bin\Debug\netcoreapp3.0\Open.Nat.dll

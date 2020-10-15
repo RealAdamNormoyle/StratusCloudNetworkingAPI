@@ -1,0 +1,10 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\output\netstandard2.1\StratusCloudNetworking.deps.json
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\output\netstandard2.1\StratusCloudNetworking.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\output\netstandard2.1\StratusCloudNetworking.pdb
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\output\netstandard2.1\UnityEngine.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\output\netstandard2.1\UnityEngine.xml
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.1\StratusCloudNetworking.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.1\StratusCloudNetworking.AssemblyInfo.cs
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.1\StratusCloudNetworking.csproj.CopyComplete
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.1\StratusCloudNetworking.dll
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\StratusCloudNetworking\obj\Debug\netstandard2.1\StratusCloudNetworking.pdb

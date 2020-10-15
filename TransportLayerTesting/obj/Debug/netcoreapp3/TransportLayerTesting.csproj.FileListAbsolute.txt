@@ -1,0 +1,3 @@
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3\TransportLayerTesting.csprojAssemblyReference.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3\TransportLayerTesting.AssemblyInfoInputs.cache
+C:\Users\Adam\source\repos\StratusCloudNetworkingAPI\TransportLayerTesting\obj\Debug\netcoreapp3\TransportLayerTesting.AssemblyInfo.cs
