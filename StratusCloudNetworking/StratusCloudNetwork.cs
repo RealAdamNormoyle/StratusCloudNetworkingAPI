@@ -44,6 +44,11 @@ namespace StratusCloudNetworking
         public string uid;
         public bool isPlaying;
         public int clients;
+        public int maxClients;
+        public bool isHostedRoom;
+        public string hash;
+        public string name;
+        public string map;
     }
 
     [System.Serializable]
@@ -58,8 +63,12 @@ namespace StratusCloudNetworking
     {
         public string uid = Guid.NewGuid().ToString();
         public List<Connection> clients = new List<Connection>();
-        public string level;
+        public string currentMap;
+        public string name;
+        public int maxPlayers;
         public bool isPlaying;
+        public bool isHostedRoom;
+        public string hash;
         public Dictionary<string, ClientState> clientStates = new Dictionary<string, ClientState>();
 
         public ClientState[] GetSateData()

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using System.Runtime;
-
+using Newtonsoft.Json;
 
 namespace StratusCloudNetworking
 {
@@ -41,6 +41,7 @@ namespace StratusCloudNetworking
         public Action<NetworkMessage> onReceivedMessage;
         public Action onDisconnect;
         public List<Action> pending = new List<Action>();
+        public Action<List<RoomReference>> onGotRoomData;
 
         public static TransportLayer TransportLayer = new TransportLayer();
 
@@ -152,6 +153,14 @@ namespace StratusCloudNetworking
         {
             TransportLayer.SendTCP(m, Instance.m_masterConnection.endPoint);
             Debug.Log($"Finished Sending to Master");
+        }
+
+        public void RequestRoomData()
+        {
+            NetworkMessage msg = new NetworkMessage();
+            msg.eventID = (int)(NetworkEvent.GetRoomList);
+            msg.UID = m_uid;
+            Master_SendMessage(msg);
         }
 
         #endregion
@@ -274,6 +283,10 @@ namespace StratusCloudNetworking
                     break;
                 case NetworkEvent.StartHostedRoom:
                     ConnectToServer(message.GetDataProperty<string>("ip", NetworkMessage.PropType.String).Replace("\\", "").Replace("\"", ""));
+                    break;
+                case NetworkEvent.GetRoomListResponse:
+                    var list = JsonConvert.DeserializeObject<List<RoomReference>>(message.data);
+                    onGotRoomData?.Invoke(list);
                     break;
             }
 

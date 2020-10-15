@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using StratusCloudNetworking;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace StratusMasterServer
 {
@@ -172,9 +173,42 @@ namespace StratusMasterServer
                         
                     }
                     break;
+                case NetworkEvent.GetRoomList:
+                    string result = GetRoomListData();
+                    NetworkMessage msg = new NetworkMessage();
+                    msg.eventID = (int)NetworkEvent.ServerRegister;
+                    msg.UID = "MASTER";
+                    msg.SetData(result);
+                    TransportLayer.SendTCP(msg, conn);
+
+                    break;
             }
 
         }
+
+        static string GetRoomListData()
+        {
+            var l = new List<RoomReference>();
+
+            foreach (var item in registeredServers)
+            {
+                var sref = item.Value.serverReference;
+
+                if (sref != null)
+                {
+                    foreach (var room in sref.rooms)
+                    {
+                        if (room.isHostedRoom)
+                        {
+                            l.Add(room);
+                        }
+                    }
+                }
+            }
+
+            return JsonConvert.SerializeObject(l);
+        }
+
 
         static ServerReference ParseServerReference(string json)
         {

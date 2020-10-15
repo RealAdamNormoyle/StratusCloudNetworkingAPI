@@ -304,6 +304,8 @@ namespace StratusCloudNetworking
         GameStart,
         StartHostedRoom,
         HostedRoomCreated,
-        ConnectToHostedRoom
+        ConnectToHostedRoom,
+        GetRoomList,
+        GetRoomListResponse
     }
 }
